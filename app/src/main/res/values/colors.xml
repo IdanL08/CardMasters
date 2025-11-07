@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primaryColor">#3F51B5</color> <!-- טורקיז ניאון -->
+    <color name="secondaryColor">#FF1178</color> <!-- ורוד מגנטה -->
+    <color name="accentColor">#FFD300</color> <!-- צהוב ניאון -->
+    <color name="backgroundColor">#ADD8E6</color> <!-- רקע כמעט שחור -->
+    <color name="surfaceColor">#12121A</color> <!-- אפור כהה -->
+    <color name="textPrimary">#FFFFFF</color> <!-- לבן -->
+    <color name="textSecondary">#B0B0B0</color> <!-- אפור בהיר -->
+    <color name="successColor">#00FF88</color> <!-- ירוק ניאון -->
+    <color name="errorColor">#FF003C</color> <!-- אדום -->
+    <color name="buttonBorderColor">#FF9800</color> <!-- orange outline -->
+    <color name="buttonPressedColor">#33FF9800</color> <!-- light orange when pressed -->
+
+</resources>
+
