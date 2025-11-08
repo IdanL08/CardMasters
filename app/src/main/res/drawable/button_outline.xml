@@ -1,22 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<selector xmlns:android="http://schemas.android.com/apk/res/android">
-
-    <!-- When pressed -->
-    <item android:state_pressed="true">
-        <shape android:shape="rectangle">
-            <solid android:color="#FFFF9800"/> <!-- Solid orange when pressed -->
-            <stroke android:width="4dp" android:color="#FFFF9800"/> <!-- Orange border -->
-            <corners android:radius="0dp"/>
-        </shape>
-    </item>
-
-    <!-- Default state -->
-    <item>
-        <shape android:shape="rectangle">
-            <solid android:color="#9C27B0"/> <!-- No fill -->
-            <stroke android:width="4dp" android:color="#FFFF9800"/> <!-- Orange border -->
-            <corners android:radius="0dp"/>
-        </shape>
-    </item>
-
-</selector>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/buttonFillColor" />
+    <stroke
+        android:width="3dp"
+        android:color="@android:color/black" />
+    <corners android:radius="0dp" />
+</shape>
