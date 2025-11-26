@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<cards>
+
+    <card id="fighter_slime" type="FIGHTER">
+        <name>Slime</name>
+        <hp>5</hp>
+        <attack>2</attack>
+        <cooldown>0</cooldown>
+        <rarity>COMMON</rarity>
+        <image>@drawable/slime_card</image>
+    </card>
+
+    <card id="spell_double_hp" type="EFFECT">
+        <name>Double HP</name>
+        <multiplier field="hp">2</multiplier>
+        <cooldown>1</cooldown>
+        <image>@drawable/doublehp_card</image>
+    </card>
+
+    <card id="spell_minus3hp" type="EFFECT">
+        <name>Deal 3 Damage</name>
+        <add field="hp">-3</add>
+        <cooldown>0</cooldown>
+        <image>@drawable/hit3_card</image>
+    </card>
+
+</cards>
