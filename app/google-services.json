@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1094738367610",
+    "project_id": "cardmasters-24931",
+    "storage_bucket": "cardmasters-24931.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1094738367610:android:b7a9d0c344b030ff5c57c3",
+        "android_client_info": {
+          "package_name": "com.example.cardmasters"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD3uY7T0DJHdcrE-NqM2i8RKzZ8Hs0Igi4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
