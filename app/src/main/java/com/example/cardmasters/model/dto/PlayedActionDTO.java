@@ -12,6 +12,8 @@ public class PlayedActionDTO {
         this.card = card;
     }
 
+
+
     public String getLaneId() { return laneId; }
     public void setLaneId(String laneId) { this.laneId = laneId; }
 

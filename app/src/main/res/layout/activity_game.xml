@@ -1,17 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:gravity="center"
-    android:orientation="vertical"
-    android:background="@color/secondaryColor">
+    android:padding="24dp">
 
     <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/btn_back_to_main"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Back to Main"
-        android:textSize="70sp"
+        android:textSize="16sp"
         android:padding="16dp"
+        android:layout_margin="16dp"
+        android:layout_gravity="center"
         android:background="@drawable/button_outline" />
+
+    <Button
+        android:id="@+id/btnStartListening"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Start Listening"
+        />
+
+    <Button
+        android:id="@+id/btnSendTurn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Send Test Turn"
+        />
+
+    <TextView
+        android:id="@+id/txtLog"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:paddingTop="16dp"
+        android:textSize="16sp"
+        android:text="Logs..."
+        android:textColor="#000000"
+        android:background="#EEEEEE" />
+
 </LinearLayout>

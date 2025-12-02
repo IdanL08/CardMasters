@@ -9,14 +9,14 @@ public class CardDatabase {
 
     static {
         // Define all your cards here
-        cards.put("larry", new FighterCard("larry", "Larry", 3, "LarrySpecial", 3, 3));
-        cards.put("brute", new FighterCard("brute", "Brute", 5, "BruteCharge", 6, 2));
+        cards.put("larry", new FighterCard("larry", "Larry", 3, 5, 3));
+        cards.put("brute", new FighterCard("brute", "Brute", 5, 8, 6));
         // Add more cards...
     }
 
     public static Card getCardPrototype(String id) {
         Card c = cards.get(id);
-        if (c != null) return c.copy();
+        if (c != null) return c.cloneCard();
         else throw new IllegalArgumentException("Card not found: " + id);
     }
 }

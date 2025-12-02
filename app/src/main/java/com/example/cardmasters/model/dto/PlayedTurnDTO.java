@@ -1,20 +1,31 @@
 package com.example.cardmasters.model.dto;
 
+import com.google.firebase.Timestamp;
+
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
-public class PlayerTurnDTO {
+public class PlayedTurnDTO {
 
     private String playerId;
     private int turnNumber;
     private List<PlayedActionDTO> actions;
 
-    public PlayerTurnDTO() {}
+    public PlayedTurnDTO() {}
 
-    public PlayerTurnDTO(String playerId, int turnNumber, List<PlayedActionDTO> actions) {
+    public PlayedTurnDTO(String playerId, int turnNumber, List<PlayedActionDTO> actions) {
         this.playerId = playerId;
         this.turnNumber = turnNumber;
         this.actions = actions;
+    }
+    public Map<String, Object> toMap() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("playerId", playerId);
+        map.put("actions", actions); // Must be serializable
+        map.put("submittedAt", Timestamp.now());
+        return map;
     }
 
     public String getPlayerId() { return playerId; }

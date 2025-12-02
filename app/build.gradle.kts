@@ -43,4 +43,8 @@ dependencies {
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
     implementation(platform("com.google.firebase:firebase-bom:34.6.0"))
+    // Firebase Firestore
+    implementation( "com.google.firebase:firebase-firestore")
+// Play Services Tasks API (needed for Task objects)
+    implementation( "com.google.android.gms:play-services-tasks")
 }
