@@ -27,10 +27,15 @@ public class GameActivity extends AppCompatActivity {
     private static final String TAG = "GameActivity";
 
     private String matchId = "test_match"; // Temporary while testing
+
     private int currentTurnNumber = 1;
 
     private ListenerRegistration turnListener;
     private TextView txtLog;
+    private Button sendTurnBtn ;
+    private Button listenBtn ;
+
+    private Button btnBack;
 
 
     @Override
@@ -38,22 +43,7 @@ public class GameActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_game);
 
-        Button sendTurnBtn = findViewById(R.id.btnSendTurn);
-        Button listenBtn   = findViewById(R.id.btnStartListening);
-        txtLog    = findViewById(R.id.txtLog);
-        Button btnBack = findViewById(R.id.btn_back_to_main);
-        btnBack.setOnClickListener(v -> {finish();});
-
-
-        // ---------------------------
-        // SEND TURN BUTTON
-        // ---------------------------
-        sendTurnBtn.setOnClickListener(v -> sendTestTurn());
-
-        // ---------------------------
-        // LISTEN FOR INCOMING TURNS
-        // ---------------------------
-        listenBtn.setOnClickListener(v -> startListening());
+        init();
     }
 
 
@@ -77,21 +67,35 @@ public class GameActivity extends AppCompatActivity {
         actions.add(action);
 
         // ==== 3. Create PlayedTurnDTO ====
-        PlayedTurnDTO turn = new PlayedTurnDTO(
-                "Player_1",          // temp id
-                currentTurnNumber,   // turn number
-                actions              // list of actions
-        );
+        FirebaseUtils.getUsername(new FirebaseUtils.UsernameCallback() {
+            @Override
+            public void onUsernameLoaded(String username) {
 
-        // ==== 4. Send to Firebase ====
-        FirebaseUtils.submitTurn(matchId, turn, success -> {
-            if (success) {
-                Log.d(TAG, "Turn sent successfully!");
-                currentTurnNumber++;
-            } else {
-                Log.e(TAG, "FAILED to send turn");
+                PlayedTurnDTO turn = new PlayedTurnDTO(
+                        username,           // real username
+                        currentTurnNumber,
+                        actions
+                );
+
+                // ==== 4. Send to Firebase ====
+                FirebaseUtils.submitTurn(matchId, turn, success -> {
+                    if (success) {
+                        Log.d(TAG, "Turn sent successfully!");
+                        currentTurnNumber++;
+                    } else {
+                        Log.e(TAG, "FAILED to send turn");
+                    }
+                });
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.e("Game", "Failed to load username", e);
             }
         });
+
+
+
     }
 
 
@@ -123,6 +127,26 @@ public class GameActivity extends AppCompatActivity {
 
         Log.d(TAG, "Listening for turns...");
     }
+
+    private void init(){
+        sendTurnBtn = findViewById(R.id.btnSendTurn);
+        listenBtn   = findViewById(R.id.btnStartListening);
+        txtLog    = findViewById(R.id.txtLog);
+        btnBack = findViewById(R.id.btn_back_to_main);
+        btnBack.setOnClickListener(v -> {finish();});
+
+
+        // ---------------------------
+        // SEND TURN BUTTON
+        // ---------------------------
+        sendTurnBtn.setOnClickListener(v -> sendTestTurn());
+
+        // ---------------------------
+        // LISTEN FOR INCOMING TURNS
+        // ---------------------------
+        listenBtn.setOnClickListener(v -> startListening());
+    }
+
 
     @Override
     protected void onDestroy() {

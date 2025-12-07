@@ -5,13 +5,13 @@
 
         <!-- Your palette -->
         <item name="colorPrimary">#3F51B5</item>
-        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorOnPrimary">@color/textPrimary</item>
         <item name="colorSecondary">#00E676</item>
         <item name="colorOnSecondary">#000000</item>
 
         <item name="android:navigationBarColor">#121212</item>
         <item name="android:windowBackground">@color/backgroundColor</item>
-        <item name="android:textColor">#FFFFFF</item>
+        <item name="android:textColor">@color/textPrimary</item>
 
         <item name="android:colorButtonNormal">@android:color/transparent</item>
         <item name="colorButtonNormal">@android:color/transparent</item>

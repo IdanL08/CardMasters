@@ -47,4 +47,5 @@ dependencies {
     implementation( "com.google.firebase:firebase-firestore")
 // Play Services Tasks API (needed for Task objects)
     implementation( "com.google.android.gms:play-services-tasks")
+    implementation("com.google.firebase:firebase-auth:22.3.1")
 }
