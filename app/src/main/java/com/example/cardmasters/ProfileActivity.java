@@ -41,21 +41,18 @@ public class ProfileActivity extends AppCompatActivity {
     private EditText edtUsername;
     private Button btnUpdate, btnDelete, btnBack;
 
-    private FirebaseAuth mAuth;
+
     private FirebaseUser currentUser;
-    private FirebaseFirestore db;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_profile);
 
-
-
         // --- Firebase ---
-        mAuth = FirebaseAuth.getInstance();//TODO move all firebase stuff to a separate class
-        db = FirebaseFirestore.getInstance();
-        currentUser = mAuth.getCurrentUser();
+        currentUser = FirebaseUtils.getCurrentUser(); // << CLEAN, no FirebaseAuth here
 
         if (currentUser == null) {
             Toast.makeText(this, "No user logged in", Toast.LENGTH_SHORT).show();
@@ -64,80 +61,6 @@ public class ProfileActivity extends AppCompatActivity {
         }
 
         init();
-    }
-
-    private void updateUsername() {
-        String newUsername = edtUsername.getText().toString().trim();
-        if (newUsername.isEmpty()) {
-            Toast.makeText(this, "Username cannot be empty", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        db.collection("users").document(currentUser.getUid())
-                .update("username", newUsername)
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(this, "Username updated", Toast.LENGTH_SHORT).show();
-                    UserPrefsUtils.saveUsername(ProfileActivity.this, newUsername); // << SAVE LOCALLY
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Failed to update username", Toast.LENGTH_SHORT).show();
-                    Log.e(TAG, "Username update error", e);
-                });
-    }
-    private void reauthenticateAndDelete() {
-
-        String email = UserPrefsUtils.getEmail(this);
-        String password = UserPrefsUtils.getPassword(this);
-
-        if (email == null || password == null) {
-            Toast.makeText(this, "Missing saved credentials", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-
-        if (user == null) {
-            Toast.makeText(this, "Not logged in", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        AuthCredential credential = EmailAuthProvider.getCredential(email, password);//יוצר מין כרטיס כניסה בעזרת עצמים של הפיירבייס
-
-        user.reauthenticate(credential).addOnSuccessListener(aVoid -> {
-
-            String uid = user.getUid();
-
-            // 1) delete document from Firestore
-            FirebaseFirestore.getInstance().collection("users").document(uid)
-                    .delete()
-                    .addOnSuccessListener(unused -> {
-
-                        // 2) delete the FirebaseAuth user
-                        user.delete().addOnSuccessListener(aVoid1 -> {
-
-                            // 3) clear shared preferences
-                            UserPrefsUtils.clear(ProfileActivity.this);
-
-                            Toast.makeText(this, "User deleted successfully", Toast.LENGTH_SHORT).show();
-
-                            //TODO clear local db
-
-                            // 4) go to Register / Splash
-                            startActivity(new Intent(this, RegisterActivity.class));
-                            finish();
-
-                        }).addOnFailureListener(e -> {
-                            Toast.makeText(this, "Failed to delete Auth user", Toast.LENGTH_SHORT).show();
-                        });
-
-                    })
-                    .addOnFailureListener(e -> {
-                        Toast.makeText(this, "Failed to delete Firestore profile", Toast.LENGTH_SHORT).show();
-                    });
-
-        }).addOnFailureListener(e -> {
-            Toast.makeText(this, "Re-authentication failed", Toast.LENGTH_SHORT).show();
-        });
     }
 
     private void init() {
@@ -151,20 +74,29 @@ public class ProfileActivity extends AppCompatActivity {
 
         // --- Populate fields ---
         txtEmail.setText(currentUser.getEmail());
-
         edtUsername.setText(UserPrefsUtils.getUsername(ProfileActivity.this));
 
-
-
         // --- Update username ---
-        btnUpdate.setOnClickListener(v -> updateUsername());
+        btnUpdate.setOnClickListener(v -> {
+            String newUsername = edtUsername.getText().toString().trim();
+            FirebaseUtils.updateUsername(ProfileActivity.this, newUsername, null);
+        });
 
         // --- Delete user ---
-        btnDelete.setOnClickListener(v -> reauthenticateAndDelete());
+        btnDelete.setOnClickListener(v -> {
+            FirebaseUtils.reauthAndDelete(ProfileActivity.this, () -> {
+                // After deletion, go to Register
+                startActivity(new Intent(this, RegisterActivity.class));
+                finish();
+            });
+        });
+
         btnBack.setOnClickListener(v -> {
             startActivity(new Intent(this, MainActivity.class));
             finish();
         });
     }
+
+
 
 }

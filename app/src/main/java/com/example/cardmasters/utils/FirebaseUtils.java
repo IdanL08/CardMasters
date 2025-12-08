@@ -1,11 +1,15 @@
 package com.example.cardmasters.utils;
 
+import android.content.Context;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.example.cardmasters.model.dto.PlayedTurnDTO;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.OnFailureListener;
+import com.google.firebase.auth.AuthCredential;
+import com.google.firebase.auth.EmailAuthProvider;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.CollectionReference;
@@ -213,5 +217,93 @@ public class FirebaseUtils {
                     }
                 })
                 .addOnFailureListener(callback::onError);
+    }
+
+    public static FirebaseUser getCurrentUser() {
+        return FirebaseAuth.getInstance().getCurrentUser();
+    }
+
+    // -------------------------------------------------------------
+    // ★ Update username in Firestore + locally
+    // -------------------------------------------------------------
+    public static void updateUsername(Context context, String newUsername, Runnable onSuccess) {
+
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) {
+            Toast.makeText(context, "Not logged in", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        db.collection("users").document(user.getUid())
+                .update("username", newUsername)
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(context, "Username updated", Toast.LENGTH_SHORT).show();
+
+                    // Save locally
+                    UserPrefsUtils.saveUsername(context, newUsername);
+
+                    if (onSuccess != null) onSuccess.run();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(context, "Failed to update username", Toast.LENGTH_SHORT).show();
+                    Log.e(TAG, "Username update error", e);
+                });
+    }
+
+
+    // -------------------------------------------------------------
+    // ★ Re-authenticate + delete Firestore + delete Auth + clear prefs
+    // -------------------------------------------------------------
+    public static void reauthAndDelete(Context context, Runnable onSuccess) {
+
+        String email = UserPrefsUtils.getEmail(context);
+        String password = UserPrefsUtils.getPassword(context);
+
+        if (email == null || password == null) {
+            Toast.makeText(context, "Missing saved credentials", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        FirebaseUser user = auth.getCurrentUser();
+
+        if (user == null) {
+            Toast.makeText(context, "Not logged in", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // יוצר מין כרטיס כניסה בעזרת עצמים של הפיירבייס
+        AuthCredential credential = EmailAuthProvider.getCredential(email, password);
+
+        user.reauthenticate(credential).addOnSuccessListener(aVoid -> {
+
+            String uid = user.getUid();
+
+            // 1) delete from Firestore
+            db.collection("users").document(uid)
+                    .delete()
+                    .addOnSuccessListener(unused -> {
+
+                        // 2) delete Auth user
+                        user.delete().addOnSuccessListener(aVoid1 -> {
+
+                            // 3) clear shared prefs
+                            UserPrefsUtils.clear(context);
+
+                            Toast.makeText(context, "User deleted successfully", Toast.LENGTH_SHORT).show();
+
+                            if (onSuccess != null) onSuccess.run();
+
+                        }).addOnFailureListener(e -> {
+                            Toast.makeText(context, "Failed to delete Auth user", Toast.LENGTH_SHORT).show();
+                        });
+
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(context, "Failed to delete Firestore user", Toast.LENGTH_SHORT).show();
+                    });
+
+        }).addOnFailureListener(e -> {
+            Toast.makeText(context, "Re-authentication failed", Toast.LENGTH_SHORT).show();
+        });
     }
 }
