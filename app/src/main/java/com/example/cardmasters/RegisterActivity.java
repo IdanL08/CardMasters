@@ -18,7 +18,7 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 
-
+import com.example.cardmasters.utils.UserPrefsUtils;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -68,7 +68,7 @@ public class RegisterActivity extends AppCompatActivity {
                 .addOnSuccessListener(result -> {
                     String uid = result.getUser().getUid();
 
-                    // ★ Save user profile in Firestore
+                    // Firestore profile
                     Map<String, Object> userData = new HashMap<>();
                     userData.put("username", username);
                     userData.put("email", email);
@@ -77,6 +77,15 @@ public class RegisterActivity extends AppCompatActivity {
                     db.collection("users").document(uid)
                             .set(userData)
                             .addOnSuccessListener(unused -> {
+
+                                // ⭐ Save locally for future autologin
+                                UserPrefsUtils.saveUserData(
+                                        RegisterActivity.this,
+                                        email,
+                                        password,
+                                        username
+                                );
+
                                 Toast.makeText(this, "Registered!", Toast.LENGTH_SHORT).show();
                                 startActivity(new Intent(this, MainActivity.class));
                                 finish();

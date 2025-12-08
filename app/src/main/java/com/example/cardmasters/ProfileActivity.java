@@ -1,5 +1,7 @@
 package com.example.cardmasters;
 
+import static java.security.AccessController.getContext;
+
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
@@ -22,8 +24,11 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.cardmasters.utils.FirebaseUtils;
+import com.example.cardmasters.utils.UserPrefsUtils;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.AuthCredential;
+import com.google.firebase.auth.EmailAuthProvider;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -70,26 +75,69 @@ public class ProfileActivity extends AppCompatActivity {
 
         db.collection("users").document(currentUser.getUid())
                 .update("username", newUsername)
-                .addOnSuccessListener(aVoid -> Toast.makeText(this, "Username updated", Toast.LENGTH_SHORT).show())
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(this, "Username updated", Toast.LENGTH_SHORT).show();
+                    UserPrefsUtils.saveUsername(ProfileActivity.this, newUsername); // << SAVE LOCALLY
+                })
                 .addOnFailureListener(e -> {
                     Toast.makeText(this, "Failed to update username", Toast.LENGTH_SHORT).show();
                     Log.e(TAG, "Username update error", e);
                 });
     }
-    private void deleteCurrentUser()
-    {   currentUser.delete()
-            .addOnCompleteListener(task -> {
-                if (task.isSuccessful()) {
-                    Toast.makeText(this, "User deleted", Toast.LENGTH_SHORT).show();
-                    startActivity(new Intent(this, RegisterActivity.class));
-                    //TODO clear all card decks data
-                    finish(); // return to previous activity
-                } else {
-                    Toast.makeText(this, "Failed to delete user", Toast.LENGTH_SHORT).show();
-                    Log.e(TAG, "Delete user error", task.getException());
-                }
-            }
-            );
+    private void reauthenticateAndDelete() {
+
+        String email = UserPrefsUtils.getEmail(this);
+        String password = UserPrefsUtils.getPassword(this);
+
+        if (email == null || password == null) {
+            Toast.makeText(this, "Missing saved credentials", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+
+        if (user == null) {
+            Toast.makeText(this, "Not logged in", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        AuthCredential credential = EmailAuthProvider.getCredential(email, password);//יוצר מין כרטיס כניסה בעזרת עצמים של הפיירבייס
+
+        user.reauthenticate(credential).addOnSuccessListener(aVoid -> {
+
+            String uid = user.getUid();
+
+            // 1) delete document from Firestore
+            FirebaseFirestore.getInstance().collection("users").document(uid)
+                    .delete()
+                    .addOnSuccessListener(unused -> {
+
+                        // 2) delete the FirebaseAuth user
+                        user.delete().addOnSuccessListener(aVoid1 -> {
+
+                            // 3) clear shared preferences
+                            UserPrefsUtils.clear(ProfileActivity.this);
+
+                            Toast.makeText(this, "User deleted successfully", Toast.LENGTH_SHORT).show();
+
+                            //TODO clear local db
+
+                            // 4) go to Register / Splash
+                            startActivity(new Intent(this, RegisterActivity.class));
+                            finish();
+
+                        }).addOnFailureListener(e -> {
+                            Toast.makeText(this, "Failed to delete Auth user", Toast.LENGTH_SHORT).show();
+                        });
+
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(this, "Failed to delete Firestore profile", Toast.LENGTH_SHORT).show();
+                    });
+
+        }).addOnFailureListener(e -> {
+            Toast.makeText(this, "Re-authentication failed", Toast.LENGTH_SHORT).show();
+        });
     }
 
     private void init() {
@@ -104,23 +152,15 @@ public class ProfileActivity extends AppCompatActivity {
         // --- Populate fields ---
         txtEmail.setText(currentUser.getEmail());
 
-        // Optional: load username from Firestore
-        FirebaseUtils.getUsername(new FirebaseUtils.UsernameCallback() {
-            @Override
-            public void onUsernameLoaded(String username) {
-                edtUsername.setText(username);
-            }
+        edtUsername.setText(UserPrefsUtils.getUsername(ProfileActivity.this));
 
-            @Override
-            public void onError(Exception e) {
-                Log.e("ProfileActivity", "Failed to load username", e);
-            }
-        });
+
+
         // --- Update username ---
         btnUpdate.setOnClickListener(v -> updateUsername());
 
         // --- Delete user ---
-        btnDelete.setOnClickListener(v -> deleteCurrentUser());
+        btnDelete.setOnClickListener(v -> reauthenticateAndDelete());
         btnBack.setOnClickListener(v -> {
             startActivity(new Intent(this, MainActivity.class));
             finish();

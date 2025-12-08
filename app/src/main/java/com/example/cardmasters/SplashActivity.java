@@ -24,7 +24,7 @@ public class SplashActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();//אם מוחקים מהפייר בייס את המשתמש עדיין יכנס אבל זה לא משנה כי לא מוחקים אותו משם
 
         if (user != null) {
             // Auto-login

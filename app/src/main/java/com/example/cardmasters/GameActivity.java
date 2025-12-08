@@ -1,5 +1,7 @@
 package com.example.cardmasters;
 
+import static java.security.AccessController.getContext;
+
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
@@ -16,6 +18,7 @@ import com.example.cardmasters.model.dto.CardDTO;
 import com.example.cardmasters.model.dto.PlayedActionDTO;
 import com.example.cardmasters.model.dto.PlayedTurnDTO;
 import com.example.cardmasters.utils.FirebaseUtils;
+import com.example.cardmasters.utils.UserPrefsUtils;
 import com.google.firebase.firestore.ListenerRegistration;
 
 import java.util.ArrayList;
@@ -67,32 +70,24 @@ public class GameActivity extends AppCompatActivity {
         actions.add(action);
 
         // ==== 3. Create PlayedTurnDTO ====
-        FirebaseUtils.getUsername(new FirebaseUtils.UsernameCallback() {
-            @Override
-            public void onUsernameLoaded(String username) {
-
-                PlayedTurnDTO turn = new PlayedTurnDTO(
-                        username,           // real username
+            PlayedTurnDTO turn = new PlayedTurnDTO(
+                        UserPrefsUtils.getUsername(GameActivity.this),           // real username
                         currentTurnNumber,
                         actions
                 );
 
                 // ==== 4. Send to Firebase ====
-                FirebaseUtils.submitTurn(matchId, turn, success -> {
-                    if (success) {
+            FirebaseUtils.submitTurn(matchId, turn, success -> {
+                if (success) {
                         Log.d(TAG, "Turn sent successfully!");
                         currentTurnNumber++;
                     } else {
                         Log.e(TAG, "FAILED to send turn");
                     }
                 });
-            }
 
-            @Override
-            public void onError(Exception e) {
-                Log.e("Game", "Failed to load username", e);
-            }
-        });
+
+
 
 
 
