@@ -19,7 +19,8 @@
         android:text="Email (read-only)"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textStyle="bold"/>
+        android:textStyle="bold"
+        android:textColor="@color/textPrimary"/>
 
     <TextView
         android:id="@+id/txtEmail"
@@ -34,13 +35,15 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textStyle="bold"
-        android:layout_marginTop="16dp"/>
+        android:layout_marginTop="16dp"
+        android:textColor="@color/textPrimary"/>
 
     <EditText
         android:id="@+id/edtUsername"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Enter username"
+        android:textColor="@color/textPrimary"
         android:textSize="@dimen/text_huge"/>
 
     <androidx.appcompat.widget.AppCompatButton

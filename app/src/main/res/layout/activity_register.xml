@@ -12,7 +12,10 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textSize="@dimen/text_large"
-        android:textColor="@color/textPrimary"/>
+        android:textColor="@color/textPrimary"
+        android:background="@color/surfaceColor"
+        android:padding="@dimen/margin_large"
+        android:layout_marginBottom="@dimen/margin_large"/>
 
     <EditText
         android:id="@+id/edtEmail"
@@ -21,7 +24,10 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textSize="@dimen/text_large"
-        android:textColor="@color/textPrimary"/>
+        android:textColor="@color/textPrimary"
+        android:background="@color/surfaceColor"
+        android:padding="@dimen/margin_large"
+        android:layout_marginBottom="@dimen/margin_large"/>
 
     <EditText
         android:id="@+id/edtPassword"
@@ -30,7 +36,10 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textSize="@dimen/text_large"
-        android:textColor="@color/textPrimary"/>
+        android:padding="@dimen/margin_large"
+        android:textColor="@color/textPrimary"
+        android:background="@color/surfaceColor"
+        android:layout_marginBottom="@dimen/margin_large"/>
 
     <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/btnRegister"

@@ -4,9 +4,9 @@
     <color name="secondaryColor">#651871</color> <!-- ורוד מגנטה -->
     <color name="accentColor">#FFD300</color> <!-- צהוב ניאון -->
     <color name="backgroundColor">#ADD8E6</color> <!-- רקע כמעט שחור -->
-    <color name="surfaceColor">#12121A</color> <!-- אפור כהה -->
-    <color name="textPrimary">#000000</color> <!-- לבן -->
-    <color name="textSecondary">#B0B0B0</color> <!-- אפור בהיר -->
+    <color name="surfaceColor">#9C008A6F</color> <!-- אפור כהה -->
+    <color name="textPrimary">#000000</color>
+    <color name="textSecondary">#3C3C3C</color> <!-- אפור בהיר -->
     <color name="successColor">#00FF88</color> <!-- ירוק ניאון -->
     <color name="errorColor">#FF003C</color> <!-- אדום -->
     <color name="buttonFillColor">#0E9E93</color> <!-- orange outline -->

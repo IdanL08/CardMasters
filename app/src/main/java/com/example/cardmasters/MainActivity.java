@@ -8,13 +8,11 @@ import android.view.WindowInsetsController;
 import android.widget.Button;
 import android.widget.TextView;
 
-import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
+
+import com.example.cardmasters.utils.LeaderboardAdapter;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -78,7 +76,7 @@ public class MainActivity extends AppCompatActivity {
         // === DIALOGS ===
         btnSettings.setOnClickListener(v -> showCustomDialog("Settings"));
         btnTasks.setOnClickListener(v -> showCustomDialog("Tasks"));
-        btnLeaderboard.setOnClickListener(v -> showCustomDialog("Leaderboard"));
+        btnLeaderboard.setOnClickListener(v -> LeaderboardAdapter.showLeaderboardDialog(this));
         btnFriends.setOnClickListener(v -> showCustomDialog("Friends"));
     }
 
@@ -98,4 +96,6 @@ public class MainActivity extends AppCompatActivity {
 
         dialog.show();
     }
+
+
 }

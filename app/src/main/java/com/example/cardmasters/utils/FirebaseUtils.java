@@ -261,6 +261,8 @@ public class FirebaseUtils {
 
         if (email == null || password == null) {
             Toast.makeText(context, "Missing saved credentials", Toast.LENGTH_SHORT).show();
+            UserPrefsUtils.clear(context);
+            if (onSuccess != null) onSuccess.run();
             return;
         }
 
@@ -306,4 +308,6 @@ public class FirebaseUtils {
             Toast.makeText(context, "Re-authentication failed", Toast.LENGTH_SHORT).show();
         });
     }
+
 }
+
