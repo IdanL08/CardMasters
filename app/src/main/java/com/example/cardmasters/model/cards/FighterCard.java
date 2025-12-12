@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class FighterCard extends Card {
-    private int baseHp;
-    private int baseAtk;
 
     private int currentHp;
     private int currentAtk;
@@ -14,8 +12,7 @@ public class FighterCard extends Card {
 
     public FighterCard(String id, String name, int cost, int hp, int atk) {
         super(id, name, cost);
-        this.baseHp = hp;
-        this.baseAtk = atk;
+
         this.currentHp = hp;
         this.currentAtk = atk;
     }
@@ -28,7 +25,7 @@ public class FighterCard extends Card {
 
     @Override
     public FighterCard cloneCard() {
-        FighterCard c = new FighterCard(id, name, cost, baseHp, baseAtk);
+        FighterCard c = new FighterCard(id, name, cost, currentHp, currentAtk);
         c.currentHp = this.currentHp;
         c.currentAtk = this.currentAtk;
 
