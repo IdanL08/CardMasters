@@ -19,8 +19,10 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -31,6 +33,7 @@ public class FirebaseUtils {
     private static final String TAG = "FirebaseUtils";
     private static final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private static final FirebaseAuth auth = FirebaseAuth.getInstance();
+    private static final int MAX_MATCHMAKING_RETRIES = 5;
 
     // --------------------------------------------------------
     //   MATCH REFERENCES
@@ -53,17 +56,17 @@ public class FirebaseUtils {
     // --------------------------------------------------------
     // Called once when two players join a match.
     // Creates a match document with metadata.
-    public static void createMatch(
+    public static void createPendingMatch(
             String player1Id,
-            String player2Id,
             OnSuccessListener<DocumentReference> onSuccess,
             OnFailureListener onFailure
     ) {
         Map<String, Object> matchData = new HashMap<>();
         matchData.put("player1Id", player1Id);
-        matchData.put("player2Id", player2Id);
+        matchData.put("player2Id", null);           // Player 2 is unknown/pending
+        matchData.put("status", "PENDING");         // New Status Field
         matchData.put("turnNumber", 0);
-        matchData.put("currentPlayer", player1Id);   // first turn
+        matchData.put("currentPlayer", player1Id);
         matchData.put("winnerId", null);
         matchData.put("createdAt", System.currentTimeMillis());
         matchData.put("lastUpdated", System.currentTimeMillis());
@@ -72,6 +75,162 @@ public class FirebaseUtils {
                 .add(matchData)
                 .addOnSuccessListener(onSuccess)
                 .addOnFailureListener(onFailure);
+    }
+
+
+    // --- 1. PUBLIC ENTRY POINT ---
+    public static void searchForMatch(String playerId, MatchmakingListener listener) {
+        // Start the search process with 0 retries
+        searchForMatchRecursive(playerId, listener, 0);
+    }
+
+    // --- 2. RECURSIVE SEARCH LOGIC ---
+    private static void searchForMatchRecursive(String playerId, MatchmakingListener listener, int attempt) {
+        // Stop if we've tried too many times
+        if (attempt >= MAX_MATCHMAKING_RETRIES) {
+            Log.e(TAG, "Matchmaking timed out after " + MAX_MATCHMAKING_RETRIES + " attempts.");
+            listener.onFailure(new Exception("Matchmaking timed out. No available matches found."));
+            return;
+        }
+
+        Log.d(TAG, "Searching for match, attempt #" + (attempt + 1));
+
+        // Query for a match that is PENDING, has no player 2, and wasn't created by us
+        Query pendingMatchesQuery = getMatchesCollection()
+                .whereEqualTo("status", "PENDING")
+                .whereEqualTo("player2Id", null)
+                .whereNotEqualTo("player1Id", playerId)
+                .limit(1);
+
+        pendingMatchesQuery.get().addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                QuerySnapshot querySnapshot = task.getResult();
+
+                if (querySnapshot != null && !querySnapshot.isEmpty()) {
+                    // Found a potential match, let's try to join it.
+                    DocumentReference matchRef = querySnapshot.getDocuments().get(0).getReference();
+                    attemptJoinMatch(matchRef, playerId, listener, attempt);
+                } else {
+                    // No pending matches found. We will create our own (terminates recursion).
+                    createPendingMatch(playerId,
+                            docRef -> listener.onMatchCreated(docRef.getId()),
+                            listener::onFailure
+                    );
+                }
+            } else {
+                // General query failure (e.g., network error)
+                listener.onFailure(task.getException());
+            }
+        });
+    }
+
+    // --- 3. TRANSACTIONAL JOIN LOGIC ---
+    public static void attemptJoinMatch(
+            DocumentReference matchRef,
+            String joiningPlayerId,
+            MatchmakingListener listener,
+            int currentAttempt) {
+
+        db.runTransaction(transaction -> {
+            DocumentSnapshot matchSnapshot = transaction.get(matchRef);
+
+            // Check if the match is still available to be joined
+            if (matchSnapshot.exists()
+                    && matchSnapshot.getString("player2Id") == null
+                    && "PENDING".equals(matchSnapshot.getString("status"))) {
+
+                // It's available! Claim the spot.
+                transaction.update(matchRef, "player2Id", joiningPlayerId);
+                transaction.update(matchRef, "status", "READY");
+                transaction.update(matchRef, "lastUpdated", System.currentTimeMillis());
+
+                // Return the match ID on success
+                return matchRef.getId();
+
+            } else {
+                // The match was taken by someone else or is no longer pending.
+                // We throw an ABORTED code exception to signal failure/retry.
+                throw new FirebaseFirestoreException("Match claimed", FirebaseFirestoreException.Code.ABORTED);
+            }
+        }).addOnSuccessListener(matchId -> {
+            // Success! The transaction completed and we joined the match.
+            Log.d(TAG, "Successfully joined match: " + matchId);
+            listener.onMatchFound(matchId);
+
+        }).addOnFailureListener(e -> {
+            // --- FAILURE HANDLER ---
+
+            // Check if the failure was because the transaction was aborted (our desired retry case)
+            if (e instanceof FirebaseFirestoreException && ((FirebaseFirestoreException) e).getCode() == FirebaseFirestoreException.Code.ABORTED) {
+
+                // This means the match was claimed by someone else (race condition).
+                Log.w(TAG, "Match was claimed by another player. Retrying search...");
+
+                // The correct retry logic: search again from the start with incremented attempt count.
+                searchForMatchRecursive(joiningPlayerId, listener, currentAttempt + 1);
+
+            } else {
+                // This was a different, more serious error (network, permissions, etc.).
+                Log.e(TAG, "Transaction failed with unexpected error.", e);
+                listener.onFailure(e);
+            }
+        });
+    }
+
+    public interface MatchmakingListener {
+        void onMatchFound(String matchId);
+        void onMatchCreated(String matchId);
+        void onFailure(Exception e);
+    }
+
+    public static void finishMatch(String matchId, String winnerId, OnSuccessListener<Void> onSuccess, OnFailureListener onFailure) {
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("status", "COMPLETED");
+        updates.put("winnerId", winnerId); // Null if a draw
+        updates.put("lastUpdated", System.currentTimeMillis());
+
+        getMatchesCollection().document(matchId)
+                .update(updates)
+                .addOnSuccessListener(onSuccess)
+                .addOnFailureListener(onFailure);
+    }
+
+    public static void deleteMatch(String matchId, OnSuccessListener<Void> onSuccess, OnFailureListener onFailure) {
+        getMatchesCollection().document(matchId)
+                .delete()
+                .addOnSuccessListener(onSuccess)
+                .addOnFailureListener(onFailure);
+    }
+
+    public static ListenerRegistration listenForMatchStatus(
+            String matchId,
+            OnMatchStatusChangeListener listener
+    ) {
+        return getMatchesCollection().document(matchId)
+                .addSnapshotListener((snapshot, error) -> {
+                    if (error != null) {
+                        Log.e(TAG, "Match status listener error.", error);
+                        listener.onError(error);
+                        return;
+                    }
+
+                    if (snapshot != null) {
+                        if (snapshot.exists()) {
+                            // Match still exists (e.g., status changed to COMPLETED)
+                            listener.onStatusChange(snapshot.getData());
+                        } else {
+                            // Match was deleted by the server or the winning client
+                            listener.onMatchDeleted();
+                        }
+                    }
+                });
+    }
+
+
+    public interface OnMatchStatusChangeListener {
+        void onStatusChange(Map<String, Object> matchData);
+        void onMatchDeleted();
+        void onError(Exception e);
     }
 
 
@@ -310,4 +469,5 @@ public class FirebaseUtils {
     }
 
 }
+
 
