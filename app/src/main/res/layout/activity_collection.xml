@@ -1,17 +1,74 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:gravity="center"
-    android:orientation="vertical"
-    android:background="@color/secondaryColor">
+    android:background="#0E1A2B"
+    android:padding="16dp">
 
-    <androidx.appcompat.widget.AppCompatButton
-        android:id="@+id/btn_back_to_main"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Back to Main"
-        android:textSize="70sp"
-        android:padding="16dp"
-        android:background="@drawable/button_outline" />
-</LinearLayout>
+        android:orientation="vertical">
+
+
+        <TextView
+            android:id="@+id/deck_size_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="DECK 0/4"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:paddingBottom="8dp"/>
+
+
+        <LinearLayout
+            android:id="@+id/deck_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="8dp"
+            android:background="#1E2D44"
+            android:gravity="center_vertical"
+            android:scrollbars="horizontal"/>
+
+        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="16dp"/>
+
+        <!-- ===== COLLECTION SECTION ===== -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="COLLECTION"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:paddingBottom="8dp"/>
+
+        <LinearLayout
+            android:id="@+id/collection_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="8dp"
+            android:background="#1E2D44"
+            android:gravity="center_vertical"
+            android:scrollbars="horizontal"/>
+
+        <!-- Back Button -->
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_back_to_main"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Back to Main"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/button_outline"
+            android:layout_marginTop="20dp"
+            android:paddingVertical="24dp"
+            android:paddingHorizontal="12dp"
+            android:layout_gravity="center"/>
+
+    </LinearLayout>
+</ScrollView>

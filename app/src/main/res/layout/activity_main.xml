@@ -11,8 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:weightSum="2"
-        android:paddingHorizontal="0dp">
+        android:weightSum="2">
 
         <!-- LEFT STACK -->
         <LinearLayout
@@ -22,24 +21,25 @@
             android:orientation="vertical"
             android:gravity="start">
 
-            <androidx.appcompat.widget.AppCompatButton
+            <ImageButton
                 android:id="@+id/btn_profile"
                 android:layout_width="@dimen/button_width_medium"
                 android:layout_height="@dimen/button_height_medium"
+                android:src="@drawable/ic_profile"
                 android:background="@drawable/button_outline"
-                android:gravity="center"
-                android:text="Profile"
-                android:textSize="@dimen/text_medium" />
+                android:scaleType="centerInside"
+                android:padding="12dp"
+                android:contentDescription="Profile" />
 
-            <androidx.appcompat.widget.AppCompatButton
+            <ImageButton
                 android:id="@+id/btn_friends"
                 android:layout_width="@dimen/button_width_medium"
                 android:layout_height="@dimen/button_height_medium"
-
+                android:src="@drawable/ic_friends"
                 android:background="@drawable/button_outline"
-                android:gravity="center"
-                android:text="Friends"
-                android:textSize="@dimen/text_medium" />
+                android:scaleType="centerInside"
+                android:padding="12dp"
+                android:contentDescription="Friends" />
         </LinearLayout>
 
         <!-- RIGHT STACK -->
@@ -50,28 +50,29 @@
             android:orientation="vertical"
             android:gravity="end">
 
-            <androidx.appcompat.widget.AppCompatButton
+            <ImageButton
                 android:id="@+id/btn_settings"
                 android:layout_width="@dimen/button_width_medium"
                 android:layout_height="@dimen/button_height_medium"
-                android:text="Settings"
-                android:textSize="@dimen/text_medium"
-                android:gravity="center"
-                android:background="@drawable/button_outline" />
+                android:src="@drawable/ic_settings"
+                android:background="@drawable/button_outline"
+                android:scaleType="centerInside"
+                android:padding="12dp"
+                android:contentDescription="Settings" />
 
-            <androidx.appcompat.widget.AppCompatButton
+            <ImageButton
                 android:id="@+id/btn_tasks"
                 android:layout_width="@dimen/button_width_medium"
                 android:layout_height="@dimen/button_height_medium"
-                android:text="Tasks"
-                android:textSize="@dimen/text_medium"
-
-                android:gravity="center"
-                android:background="@drawable/button_outline" />
+                android:src="@drawable/ic_tasks"
+                android:background="@drawable/button_outline"
+                android:scaleType="centerInside"
+                android:padding="12dp"
+                android:contentDescription="Tasks" />
         </LinearLayout>
     </LinearLayout>
 
-    <!-- CENTER GAME BUTTON -->
+    <!-- CENTER GAME BUTTON (OLD VERSION WITH TEXT) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -94,42 +95,42 @@
     <!-- BOTTOM BAR -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="@dimen/button_height_large"
+        android:layout_height="@dimen/button_height_medium"
         android:orientation="horizontal"
         android:weightSum="3">
 
-        <androidx.appcompat.widget.AppCompatButton
+        <ImageButton
             android:id="@+id/btn_lootbox"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:text="Lootbox"
-            android:textSize="@dimen/text_large"
-            android:gravity="center"
+            android:src="@drawable/ic_lootbox"
             android:background="@drawable/button_outline"
-            android:padding="0dp" />
+            android:scaleType="centerInside"
+            android:padding="12dp"
+            android:contentDescription="Lootbox" />
 
-        <androidx.appcompat.widget.AppCompatButton
+        <ImageButton
             android:id="@+id/btn_collection"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:text="Collection"
-            android:textSize="@dimen/text_large"
-            android:gravity="center"
+            android:src="@drawable/ic_collection"
             android:background="@drawable/button_outline"
-            android:padding="0dp" />
+            android:scaleType="centerInside"
+            android:padding="12dp"
+            android:contentDescription="Collection" />
 
-        <androidx.appcompat.widget.AppCompatButton
+        <ImageButton
             android:id="@+id/btn_leaderboard"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:text="Leaderboard"
-            android:textSize="@dimen/text_large"
-            android:gravity="center"
+            android:src="@drawable/ic_leaderboard"
             android:background="@drawable/button_outline"
-            android:padding="0dp" />
+            android:scaleType="centerInside"
+            android:padding="12dp"
+            android:contentDescription="Leaderboard" />
     </LinearLayout>
 
 </LinearLayout>

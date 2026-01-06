@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -17,8 +18,9 @@ import com.example.cardmasters.utils.LeaderboardAdapter;
 public class MainActivity extends AppCompatActivity {
 
     // Buttons
-    Button btnSettings, btnTasks, btnProfile, btnFriends;
-    Button btnGame, btnLootbox, btnCollection, btnLeaderboard;
+    ImageButton btnSettings, btnTasks, btnProfile, btnFriends;
+    Button btnGame;
+    ImageButton btnLootbox, btnCollection, btnLeaderboard;
 
     // Launcher for result
     private final ActivityResultLauncher<Intent> lootboxLauncher =
@@ -68,16 +70,17 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(new Intent(this, ProfileActivity.class));
                 finish();});
 
-        btnLootbox.setOnClickListener(v -> {
+        btnLootbox.setOnClickListener(v -> {//TODO הוסף קלפים ויהלומים
             Intent intent = new Intent(this, LootBoxActivity.class);
             lootboxLauncher.launch(intent);
         });
 
         // === DIALOGS ===
-        btnSettings.setOnClickListener(v -> showCustomDialog("Settings"));
-        btnTasks.setOnClickListener(v -> showCustomDialog("Tasks"));
+        btnSettings.setOnClickListener(v -> showCustomDialog("Settings"));//TODO יחסית בסוף להוסיף הגדרות צליל
+        btnTasks.setOnClickListener(v -> showCustomDialog("Tasks"));//TODO כמות יהלומים ולוטבוקסים userPrefsמשימות רנדומליות המעניקות פרסים, רושמות ב
+
         btnLeaderboard.setOnClickListener(v -> LeaderboardAdapter.showLeaderboardDialog(this));
-        btnFriends.setOnClickListener(v -> showCustomDialog("Friends"));
+        btnFriends.setOnClickListener(v -> showCustomDialog("Friends"));//TODO הצג את כל השחקנים, הצג את החברים למעלה
     }
 
     // Simple reusable custom dialog method
