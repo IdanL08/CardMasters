@@ -29,6 +29,7 @@ public class PlayedTurnDTO {
     }
 
     public String getPlayerId() { return playerId; }
+
     public void setPlayerId(String playerId) { this.playerId = playerId; }
 
     public int getTurnNumber() { return turnNumber; }

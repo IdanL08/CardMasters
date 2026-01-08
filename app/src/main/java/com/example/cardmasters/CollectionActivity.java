@@ -27,7 +27,14 @@ public class CollectionActivity extends AppCompatActivity {
         // Set up UI elements and back button
         findViewById(R.id.btn_back_to_main).setOnClickListener(v -> finish());
 
+
         // Refresh UI based on the current state of the deck and collection
+
+
+        dbHelper.addCardsToCollection("fishboy", 2);
+        dbHelper.addCardsToCollection("ghoul_cowboy",3);
+        dbHelper.addCardsToCollection("robo_cowboy",4);
+
         refreshUI();
     }
 
@@ -42,7 +49,7 @@ public class CollectionActivity extends AppCompatActivity {
         // Add image
         ImageView image = new ImageView(this);
         image.setImageResource(imageRes);
-        image.setLayoutParams(new LinearLayout.LayoutParams(160, 220));
+        image.setLayoutParams(new LinearLayout.LayoutParams(220, 300));
         image.setScaleType(ImageView.ScaleType.FIT_CENTER);
 
         // Add quantity text
@@ -114,15 +121,18 @@ public class CollectionActivity extends AppCompatActivity {
 
     // Helper method to get the image resource ID based on cardId
     private int getImageForCard(String cardId) {
-        switch (cardId) {
-            case "fishboy":
-                return R.drawable.im_fishboy; // Replace with actual drawable resource ID
-            case "nepton":
-                return R.drawable.im_nepton; // Replace with actual drawable resource ID
-            case "sponge":
-                return R.drawable.im_sponge; // Replace with actual drawable resource ID
-            default:
-                return R.drawable.ic_launcher_foreground; // Default image for undefined card
+        // Construct the resource name: "im_" + cardId (e.g., "im_fishboy")
+        String resourceName = "im_" + cardId;
+
+        // Get the resource ID dynamically from the drawable folder
+        int resId = getResources().getIdentifier(resourceName, "drawable", getPackageName());
+
+        // If resId is 0, it means the image doesn't exist in the drawables folder
+        if (resId == 0) {
+            return R.drawable.ic_launcher_foreground; // Your default fallback image
         }
+
+        return resId;
     }
+
 }

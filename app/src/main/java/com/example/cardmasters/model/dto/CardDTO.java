@@ -2,25 +2,24 @@ package com.example.cardmasters.model.dto;
 
 import java.util.List;
 
-
 public class CardDTO {
 
-    private String cardId;            // "fighter_slime", "buff_attack"
+    private String cardId;            // "fishboy", "emp"
     private String type;              // "FIGHTER" or "EFFECT"
 
     // Fighter stats only relevant if type == FIGHTER
-    private int baseHp;
-    private int baseAttack;
+    private int hp;
+    private int atk;
 
     private List<EffectDTO> appliedEffects;
 
     public CardDTO() {}
 
-    public CardDTO(String cardId, String type, int baseHp, int baseAttack, List<EffectDTO> appliedEffects) {
+    public CardDTO(String cardId, String type, int hp, int atk, List<EffectDTO> appliedEffects) {
         this.cardId = cardId;
         this.type = type;
-        this.baseHp = baseHp;
-        this.baseAttack = baseAttack;
+        this.hp = hp;
+        this.atk = atk;
         this.appliedEffects = appliedEffects;
     }
 
@@ -31,11 +30,11 @@ public class CardDTO {
     public String getType() { return type; }
     public void setType(String type) { this.type = type; }
 
-    public int getBaseHp() { return baseHp; }
-    public void setBaseHp(int baseHp) { this.baseHp = baseHp; }
+    public int getHp() { return hp; }
+    public void setHp(int hp) { this.hp = hp; }
 
-    public int getBaseAttack() { return baseAttack; }
-    public void setBaseAttack(int baseAttack) { this.baseAttack = baseAttack; }
+    public int getAtk() { return atk; }
+    public void setAtk(int atk) { this.atk = atk; }
 
     public List<EffectDTO> getAppliedEffects() { return appliedEffects; }
     public void setAppliedEffects(List<EffectDTO> appliedEffects) { this.appliedEffects = appliedEffects; }

@@ -5,25 +5,23 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="dda7309b-73a6-49a0-8441-647ffc8a54af" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/../.idea/dbnavigator.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../.idea/dbnavigator.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../.idea/deploymentTargetSelector.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../.idea/deploymentTargetSelector.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../.idea/gradle.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../.idea/gradle.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../.idea/vcs.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../app/google-services.json" beforeDir="false" afterPath="$PROJECT_DIR$/../app/google-services.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../app/src/main/java/com/example/cardmasters/model/Effect.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../app/src/main/java/com/example/cardmasters/model/Hero.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../app/src/main/java/com/example/cardmasters/utils/BattlefieldUtils.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../app/src/main/res/drawable/im_emp.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../app/src/main/res/drawable/im_gambler.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../app/src/main/res/drawable/im_ghoul_cowboy.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../app/src/main/res/drawable/im_robo_cowboy.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/../app/src/main/java/com/example/cardmasters/CollectionActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/../app/src/main/java/com/example/cardmasters/CollectionActivity.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../app/src/main/java/com/example/cardmasters/GameActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/../app/src/main/java/com/example/cardmasters/GameActivity.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../app/src/main/java/com/example/cardmasters/MainActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/../app/src/main/java/com/example/cardmasters/MainActivity.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../app/src/main/java/com/example/cardmasters/RegisterActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/../app/src/main/java/com/example/cardmasters/RegisterActivity.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../app/src/main/java/com/example/cardmasters/SplashActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/../app/src/main/java/com/example/cardmasters/SplashActivity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../app/src/main/java/com/example/cardmasters/model/cards/Card.java" beforeDir="false" afterPath="$PROJECT_DIR$/../app/src/main/java/com/example/cardmasters/model/cards/Card.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../app/src/main/java/com/example/cardmasters/model/cards/EffectCard.java" beforeDir="false" afterPath="$PROJECT_DIR$/../app/src/main/java/com/example/cardmasters/model/cards/EffectCard.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../app/src/main/java/com/example/cardmasters/model/cards/FighterCard.java" beforeDir="false" afterPath="$PROJECT_DIR$/../app/src/main/java/com/example/cardmasters/model/cards/FighterCard.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../app/src/main/java/com/example/cardmasters/utils/FirebaseUtils.java" beforeDir="false" afterPath="$PROJECT_DIR$/../app/src/main/java/com/example/cardmasters/utils/FirebaseUtils.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../app/src/main/res/layout/activity_collection.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../app/src/main/res/layout/activity_collection.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../app/src/main/java/com/example/cardmasters/model/dto/CardDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/../app/src/main/java/com/example/cardmasters/model/dto/CardDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../app/src/main/java/com/example/cardmasters/model/dto/EffectDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/../app/src/main/java/com/example/cardmasters/model/dto/EffectDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../app/src/main/java/com/example/cardmasters/utils/CardDatabaseHelper.java" beforeDir="false" afterPath="$PROJECT_DIR$/../app/src/main/java/com/example/cardmasters/utils/CardDatabaseHelper.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../app/src/main/res/layout/activity_game.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../app/src/main/res/layout/activity_game.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../app/src/main/res/layout/activity_main.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../app/src/main/res/layout/activity_main.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../app/src/main/res/layout/activity_register.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../app/src/main/res/layout/activity_register.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../app/src/main/res/layout/activity_splash.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../app/src/main/res/layout/activity_splash.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../app/src/main/res/values/strings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../app/src/main/res/values/strings.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -42,41 +40,41 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "IdanL08"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;IdanL08&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/IdanL08/CardMasters",
-    "accountId": "3d44eccc-bb1b-4389-b4e3-182ed16b1e77"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/IdanL08/CardMasters&quot;,
+    &quot;accountId&quot;: &quot;3d44eccc-bb1b-4389-b4e3-182ed16b1e77&quot;
   }
-}]]></component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 8
-}]]></component>
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 8
+}</component>
   <component name="ProjectId" id="37sa87eeJRp3GfIw3of292NtVWW" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.cidr.known.project.marker": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.readMode.enableVisualFormatting": "true",
-    "cf.first.check.clang-format": "false",
-    "cidr.known.project.marker": "true",
-    "git-widget-placeholder": "master",
-    "project.structure.last.edited": "Modules",
-    "project.structure.proportion": "0.17",
-    "project.structure.side.proportion": "0.2"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
+    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
+    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.17&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager">
     <configuration name="app" type="AndroidRunConfigurationType" factoryName="Android App" activateToolWindowBeforeRun="false">
       <module name="CardMasters.app" />

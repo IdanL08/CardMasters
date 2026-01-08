@@ -1,69 +1,122 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="24dp">
-
-    <androidx.appcompat.widget.AppCompatButton
-        android:id="@+id/btnSearchMatch"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Search for Match"
-        android:textSize="18sp"
-        android:backgroundTint="#4CAF50"
-        android:textColor="#FFFFFF"
-        android:layout_marginBottom="16dp" />
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="#121212">
 
     <TextView
         android:id="@+id/txtMatchId"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Match ID: Not Connected"
-        android:textSize="14sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="8dp"/>
-
-    <androidx.appcompat.widget.AppCompatButton
-        android:id="@+id/btn_back_to_main"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Back to Main"
-        android:textSize="16sp"
-        android:padding="16dp"
-        android:layout_margin="16dp"
-        android:layout_gravity="center"
-        android:background="@drawable/button_outline" />
+        android:text="Match ID: ---"
+        android:textColor="#7F8C8D"
+        android:textSize="12sp" />
 
-    <androidx.appcompat.widget.AppCompatButton
-        android:id="@+id/btnStartListening"
+    <TextView
+        android:id="@+id/txtOpponentHero"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Start Listening"
-        android:enabled="false"
-        />
+        android:text="ENEMY HERO: 30 HP"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="#E74C3C"
+        android:gravity="center"
+        android:layout_marginBottom="8dp"/>
 
-    <androidx.appcompat.widget.AppCompatButton
-        android:id="@+id/btnSendTurn"
+    <LinearLayout
+        android:id="@+id/enemy_lane_container"
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:orientation="horizontal"
+        android:weightSum="5">
+        <ImageView android:id="@+id/laneE0" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#1A1A1A" android:layout_margin="2dp" android:scaleType="fitCenter" android:padding="4dp"/>
+        <ImageView android:id="@+id/laneE1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#1A1A1A" android:layout_margin="2dp" android:scaleType="fitCenter" android:padding="4dp"/>
+        <ImageView android:id="@+id/laneE2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#1A1A1A" android:layout_margin="2dp" android:scaleType="fitCenter" android:padding="4dp"/>
+        <ImageView android:id="@+id/laneE3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#1A1A1A" android:layout_margin="2dp" android:scaleType="fitCenter" android:padding="4dp"/>
+        <ImageView android:id="@+id/laneE4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#1A1A1A" android:layout_margin="2dp" android:scaleType="fitCenter" android:padding="4dp"/>
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:background="#34495E"
+        android:layout_marginVertical="8dp"/>
+
+    <LinearLayout
+        android:id="@+id/player_lane_container"
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:orientation="horizontal"
+        android:weightSum="5">
+        <ImageView android:id="@+id/laneP0" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#2C3E50" android:layout_margin="2dp" android:scaleType="fitCenter" android:padding="4dp"/>
+        <ImageView android:id="@+id/laneP1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#2C3E50" android:layout_margin="2dp" android:scaleType="fitCenter" android:padding="4dp"/>
+        <ImageView android:id="@+id/laneP2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#2C3E50" android:layout_margin="2dp" android:scaleType="fitCenter" android:padding="4dp"/>
+        <ImageView android:id="@+id/laneP3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#2C3E50" android:layout_margin="2dp" android:scaleType="fitCenter" android:padding="4dp"/>
+        <ImageView android:id="@+id/laneP4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#2C3E50" android:layout_margin="2dp" android:scaleType="fitCenter" android:padding="4dp"/>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/txtMyHero"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Send Test Turn"
-        android:enabled="false"
-        />
+        android:text="YOUR HERO: 30 HP"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="#2ECC71"
+        android:gravity="center"
+        android:layout_marginTop="8dp"/>
+
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fillViewport="true"
+        android:layout_marginTop="10dp"
+        android:background="#1A252F">
+
+        <LinearLayout
+            android:id="@+id/hand_container"
+            android:layout_width="wrap_content"
+            android:layout_height="160dp"
+            android:minWidth="900dp"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:padding="8dp" />
+    </HorizontalScrollView>
+
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp">
+        <Button android:id="@+id/btnSearchMatch" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Find Game" android:layout_marginEnd="4dp"/>
+        <Button android:id="@+id/btnSendTurn" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="End Turn" android:layout_marginStart="4dp"/>
+    </LinearLayout>
 
     <TextView
         android:id="@+id/txtLog"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:padding="16dp"
-        android:textSize="14sp"
-        android:text="Logs..."
-        android:textColor="#000000"
+        android:background="#000000"
+        android:padding="8dp"
+        android:textColor="#00FF00"
+        android:fontFamily="monospace"
         android:scrollbars="vertical"
-        android:gravity="top"
-        android:background="#EEEEEE"
-        android:layout_marginTop="16dp"/>
+        android:layout_marginTop="8dp"
+        android:textSize="10sp"
+        android:text="Waiting for game to start..." />
+
+    <Button
+        android:id="@+id/btn_back_to_main"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Quit"
+        android:backgroundTint="#C0392B"
+        android:layout_marginTop="4dp"/>
+
+    <Button android:id="@+id/btnStartListening" android:layout_width="wrap_content" android:layout_height="wrap_content" android:visibility="gone"/>
 
 </LinearLayout>

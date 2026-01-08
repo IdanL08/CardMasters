@@ -10,6 +10,7 @@ public abstract class Card {
         this.name = name;
         this.cost = cost;
     }
+    public Card() {} // Required for Firebase
 
     public String getId() { return id; }
     public String getName() { return name; }
