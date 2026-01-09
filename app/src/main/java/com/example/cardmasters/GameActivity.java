@@ -1,18 +1,28 @@
 package com.example.cardmasters;
 
-import android.app.ProgressDialog;
-import android.content.DialogInterface;
+import android.content.ClipData;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.DragEvent;
+import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.cardmasters.model.Hero;
+import com.example.cardmasters.model.cards.Card;
+import com.example.cardmasters.model.cards.FighterCard;
 import com.example.cardmasters.model.dto.CardDTO;
 import com.example.cardmasters.model.dto.PlayedActionDTO;
 import com.example.cardmasters.model.dto.PlayedTurnDTO;
+import com.example.cardmasters.utils.BattlefieldUtils;
+import com.example.cardmasters.utils.CardDatabaseHelper;
 import com.example.cardmasters.utils.FirebaseUtils;
 import com.example.cardmasters.utils.UserPrefsUtils;
 import com.google.firebase.firestore.ListenerRegistration;
@@ -21,330 +31,338 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-
-public class GameActivity extends AppCompatActivity implements FirebaseUtils.MatchmakingListener {
+public class GameActivity extends AppCompatActivity {
 
     private static final String TAG = "GameActivity";
 
-    private String matchId = null; // Changed to null, will be set by matchmaking
+    // UI Components
+    private TextView txtMatchId, txtOpponentHero, txtMyHero, txtLog;
+    private LinearLayout playerLaneContainer, enemyLaneContainer, handContainer;
+    private Button btnSendTurn, btnBack;
 
+    // Game State
+    private String matchId;
+    private CardDatabaseHelper cardDbHelper;
+    private Hero playerHero, enemyHero;
+    private List<FighterCard> playerLanes, enemyLanes;
+    private List<Card> playerHand;
+
+    // Turn Tracking & Synchronization
     private int currentTurnNumber = 1;
-
+    private boolean turnSubmitted = false;
+    private PlayedTurnDTO pendingEnemyTurn = null; // Holds opponent's move if it arrives early
+    private final List<PlayedActionDTO> actionSequence = new ArrayList<>();
     private ListenerRegistration turnListener;
-
-    // UI elements
-    private TextView txtLog;
-    private TextView txtMatchId;
-    private Button sendTurnBtn;
-    private Button listenBtn;
-    private Button btnBack;
-    private Button searchMatchBtn;
-
-    private ProgressDialog progressDialog;
-    private ListenerRegistration matchStatusListener; // New member to store the listener
-
+    private FighterCard currentDraggingCard = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_game);
-        init();
-    }
 
-
-    private void updateMatchStatusUI(String id) {
-        this.matchId = id;
-        txtMatchId.setText(String.format("Match ID: %s", id));
-        searchMatchBtn.setEnabled(false); // Can't search if you're in a match
-
-        // Only enable these if the match is READY
-        if (id != null && !id.isEmpty()) {
-            listenBtn.setEnabled(true);
-            sendTurnBtn.setEnabled(true);
-            // Optionally start listening immediately if matched
-            startListening();
-        } else {
-            listenBtn.setEnabled(false);
-            sendTurnBtn.setEnabled(false);
-        }
-    }
-
-
-    // -----------------------------------------------------
-    // MATCHMAKING BUTTON ACTION
-    // -----------------------------------------------------
-    private void searchForGame() {
-        if (matchId != null) {
-            Toast.makeText(this, "Already in match: " + matchId, Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        progressDialog = ProgressDialog.show(this, "Searching for Match",
-                "Loading... Looking for an opponent or creating a new game.",
-                true, true, new DialogInterface.OnCancelListener() {
-                    @Override
-                    public void onCancel(DialogInterface dialog) {
-
-                        Toast.makeText(GameActivity.this, "Match search canceled.", Toast.LENGTH_SHORT).show();
-                        finish();
-                    }
-                });
-
-        // Use the username as the player ID
-        String playerId = UserPrefsUtils.getUsername(this);
-        FirebaseUtils.searchForMatch(playerId, this);
-    }
-
-    // -----------------------------------------------------
-    // MatchmakingListener Implementation
-    // -----------------------------------------------------
-
-
-    // Update the matchmaking callbacks to start the new listener
-    @Override
-    public void onMatchFound(String matchId) {
-        if (progressDialog != null) progressDialog.dismiss();
-        Log.d(TAG, "Match Found and Joined: " + matchId);
-        Toast.makeText(this, "Match Found! ID: " + matchId, Toast.LENGTH_LONG).show();
-        updateMatchStatusUI(matchId);
-        startMatchListeners(); // <<< START LISTENING HERE
-    }
-
-    @Override
-    public void onMatchCreated(String matchId) {
-        if (progressDialog != null) progressDialog.dismiss();
-        Log.d(TAG, "New Match Created and Pending: " + matchId);
-        Toast.makeText(this, "Match Created. Waiting for Opponent...", Toast.LENGTH_LONG).show();
-        updateMatchStatusUI(matchId);
-        startMatchListeners(); // <<< START LISTENING HERE
-    }
-
-
-    @Override
-    public void onFailure(Exception e) {
-        if (progressDialog != null) progressDialog.dismiss();
-
-        Log.e(TAG, "Matchmaking FAILED: " + e.getMessage(), e);
-        Toast.makeText(this, "Matchmaking failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
-        // Re-enable the search button after failure
-        searchMatchBtn.setEnabled(true);
-    }
-
-
-    // -----------------------------------------------------
-    // SEND A TEST TURN
-    // -----------------------------------------------------
-    private void sendTestTurn() {
+        matchId = getIntent().getStringExtra("MATCH_ID");
         if (matchId == null) {
-            Toast.makeText(this, "Cannot send turn. No active match ID.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Match Error: No ID found", Toast.LENGTH_SHORT).show();
+            finish();
             return;
         }
 
-        // ... (rest of sendTestTurn logic remains the same)
-        // ...
+        initUI();
+        initGameState();
+        setupDragAndDrop();
+        startTurnListener();
 
-        // ==== 1. Create a dummy card DTO ====
-        CardDTO dummyCard = new CardDTO();
-        dummyCard.setCardId("card_001");
-        dummyCard.setType("Test Fighter");
-
-        
-        dummyCard.setHp(5);
-
-        // ==== 2. Wrap in PlayedActionDTO ====
-        PlayedActionDTO action = new PlayedActionDTO("0", dummyCard); // lane 0
-
-        List<PlayedActionDTO> actions = new ArrayList<>();
-        actions.add(action);
-
-        // ==== 3. Create PlayedTurnDTO ====
-        PlayedTurnDTO turn = new PlayedTurnDTO(
-                UserPrefsUtils.getUsername(GameActivity.this),           // real username
-                currentTurnNumber,
-                actions
-        );
-
-        // ==== 4. Send to Firebase ====
-        FirebaseUtils.submitTurn(matchId, turn, success -> {
-            if (success) {
-                Log.d(TAG, "Turn sent successfully!");
-                currentTurnNumber++;
-            } else {
-                Log.e(TAG, "FAILED to send turn");
-                Toast.makeText(GameActivity.this, "Failed to send turn.", Toast.LENGTH_SHORT).show();
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                quitGame();
             }
         });
     }
 
+    private void initUI() {
+        txtMatchId = findViewById(R.id.txtMatchId);
+        txtOpponentHero = findViewById(R.id.txtOpponentHero);
+        txtMyHero = findViewById(R.id.txtMyHero);
+        txtLog = findViewById(R.id.txtLog);
+        playerLaneContainer = findViewById(R.id.player_lane_container);
+        enemyLaneContainer = findViewById(R.id.enemy_lane_container);
+        handContainer = findViewById(R.id.hand_container);
+        btnSendTurn = findViewById(R.id.btnSendTurn);
+        btnBack = findViewById(R.id.btn_back_to_main);
 
-    // -----------------------------------------------------
-    // LISTEN FOR INCOMING TURNS
-    // -----------------------------------------------------
-    private void startListening() {
-        if (matchId == null) {
-            Toast.makeText(this, "Cannot start listening. No active match ID.", Toast.LENGTH_SHORT).show();
-            return;
+        txtMatchId.setText("Match ID: " + matchId);
+        btnSendTurn.setOnClickListener(v -> submitTurn());
+        btnBack.setOnClickListener(v -> quitGame());
+    }
+
+    private void initGameState() {
+        cardDbHelper = new CardDatabaseHelper(this);
+        playerHero = new Hero(UserPrefsUtils.getUsername(this), 30);
+        enemyHero = new Hero("Opponent", 30);
+
+        playerLanes = new ArrayList<>();
+        enemyLanes = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            playerLanes.add(null);
+            enemyLanes.add(null);
         }
-        if (turnListener != null) return;
 
-        turnListener = FirebaseUtils.listenForTurns(
-                matchId,
-                (turnId, data) -> runOnUiThread(() -> {
-                    String logEntry = "TURN RECEIVED:\n"
-                            + "ID: " + turnId + "\n"
-                            + "DATA: " + data + "\n\n";
+        loadPlayerHand();
+        updateHeroUI();
+        log("Battle sequence initialized. Round 1 Start!");
+    }
 
-                    txtLog.append(logEntry);
+    private void loadPlayerHand() {
+        playerHand = cardDbHelper.getActiveDeck();
+        handContainer.removeAllViews();
 
-                    // Auto scroll (Standard Android way to scroll TextViews)
-                    final int scrollAmount = txtLog.getLayout().getLineTop(txtLog.getLineCount()) - txtLog.getHeight();
-                    txtLog.scrollTo(0, scrollAmount > 0 ? scrollAmount : 0);
+        for (Card c : playerHand) {
+            ImageView cardImg = new ImageView(this);
+            int resId = getResources().getIdentifier("im_" + c.getId(), "drawable", getPackageName());
+            cardImg.setImageResource(resId != 0 ? resId : android.R.drawable.ic_menu_help);
 
-                    Log.d(TAG, logEntry);
-                })
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(220, 300);
+            lp.setMargins(10, 0, 10, 0);
+            cardImg.setLayoutParams(lp);
+
+            cardImg.setOnLongClickListener(v -> {
+                if (turnSubmitted) return false;
+                currentDraggingCard = (c instanceof FighterCard) ? (FighterCard) c : null;
+                ClipData data = ClipData.newPlainText("", "");
+                View.DragShadowBuilder shadow = new View.DragShadowBuilder(v);
+                v.startDragAndDrop(data, shadow, v, 0);
+                v.setVisibility(View.INVISIBLE);
+                return true;
+            });
+            handContainer.addView(cardImg);
+        }
+    }
+
+    private void setupDragAndDrop() {
+        for (int i = 0; i < 5; i++) {
+            final int laneIdx = i;
+            ImageView laneView = (ImageView) playerLaneContainer.getChildAt(i);
+
+            laneView.setOnDragListener((v, event) -> {
+                switch (event.getAction()) {
+                    case DragEvent.ACTION_DRAG_STARTED:
+                        return true;
+                    case DragEvent.ACTION_DRAG_ENTERED:
+                        v.setBackgroundColor(0x44FFFFFF);
+                        return true;
+                    case DragEvent.ACTION_DRAG_EXITED:
+                        v.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+                        return true;
+                    case DragEvent.ACTION_DROP:
+                        v.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+                        if (currentDraggingCard != null && playerLanes.get(laneIdx) == null) {
+                            playerLanes.set(laneIdx, currentDraggingCard);
+                            CardDTO dto = new CardDTO(
+                                    currentDraggingCard.getId(),
+                                    "FIGHTER",
+                                    currentDraggingCard.getHp(),
+                                    currentDraggingCard.getAtk(),
+                                    new ArrayList<>()
+                            );
+                            actionSequence.add(new PlayedActionDTO(String.valueOf(laneIdx), dto));
+                            log("Placed " + currentDraggingCard.getName() + " in Lane " + laneIdx);
+                            refreshLaneUI();
+                            return true;
+                        }
+                        return false;
+                    case DragEvent.ACTION_DRAG_ENDED:
+                        View draggedView = (View) event.getLocalState();
+                        if (draggedView != null) {
+                            if (!event.getResult()) draggedView.setVisibility(View.VISIBLE);
+                            else handContainer.removeView(draggedView);
+                        }
+                        currentDraggingCard = null;
+                        return true;
+                }
+                return true;
+            });
+        }
+    }
+
+    private void submitTurn() {
+        if (turnSubmitted) return;
+
+        PlayedTurnDTO turnDto = new PlayedTurnDTO(
+                UserPrefsUtils.getUsername(this),
+                currentTurnNumber,
+                new ArrayList<>(actionSequence)
         );
 
-        Log.d(TAG, "Listening for turns on match: " + matchId);
-        Toast.makeText(this, "Listening started for match: " + matchId, Toast.LENGTH_SHORT).show();
-    }
+        btnSendTurn.setEnabled(false);
+        log("Sending turn " + currentTurnNumber + "...");
 
-    private void init(){
-        searchMatchBtn = findViewById(R.id.btnSearchMatch); // New Button
-        sendTurnBtn    = findViewById(R.id.btnSendTurn);
-        listenBtn      = findViewById(R.id.btnStartListening);
-        txtLog         = findViewById(R.id.txtLog);
-        btnBack        = findViewById(R.id.btn_back_to_main);
-        txtMatchId     = findViewById(R.id.txtMatchId); // New TextView
+        FirebaseUtils.submitTurn(matchId, turnDto, success -> {
+            runOnUiThread(() -> {
+                if (success) {
+                    turnSubmitted = true;
+                    log("Turn sent. Waiting for opponent...");
 
-        btnBack.setOnClickListener(v -> {
-
-            if (matchId != null){
-            deleteMatch();
-
-        }
-            else
-                finish();
+                    // SYNC CHECK: If opponent already moved, start battle
+                    if (pendingEnemyTurn != null && pendingEnemyTurn.getTurnNumber() == currentTurnNumber) {
+                        log("Opponent was waiting! Commencing battle...");
+                        processBattle(pendingEnemyTurn);
+                    }
+                } else {
+                    turnSubmitted = false;
+                    btnSendTurn.setEnabled(true);
+                    log("Send failed! Try again.");
+                }
+            });
         });
-
-
-        // ---------------------------
-        // MATCHMAKING BUTTON
-        // ---------------------------
-        searchMatchBtn.setOnClickListener(v -> searchForGame());
-
-        // ---------------------------
-        // SEND TURN BUTTON (Initial state is disabled)
-        // ---------------------------
-        sendTurnBtn.setOnClickListener(v -> sendTestTurn());
-        sendTurnBtn.setEnabled(false);
-
-        // ---------------------------
-        // LISTEN FOR INCOMING TURNS (Initial state is disabled)
-        // ---------------------------
-        listenBtn.setOnClickListener(v -> startListening());
-        listenBtn.setEnabled(false);
     }
 
+    private void startTurnListener() {
+        turnListener = FirebaseUtils.listenForTurns(matchId, (turnId, turnData) -> {
+            if (turnData == null) return;
 
-    private void startMatchListeners() {
-        if (matchId == null || matchStatusListener != null) return;
+            String sender = (String) turnData.get("playerId");
+            if (sender != null && sender.equals(UserPrefsUtils.getUsername(this))) return;
 
-        // 1. Start listening for turns (existing logic)
-        startListening();
+            try {
+                Object tNumObj = turnData.get("turnNumber");
+                if (tNumObj == null) return;
 
-        // 2. Start listening for match status/deletion (new logic)
-        matchStatusListener = FirebaseUtils.listenForMatchStatus(
-                matchId,
-                new FirebaseUtils.OnMatchStatusChangeListener() {
-                    @Override
-                    public void onStatusChange(Map<String, Object> matchData) {
-                        // Check if the match has been completed (e.g., status == "COMPLETED")
-                        String status = (String) matchData.get("status");
-                        String winnerId = (String) matchData.get("winnerId");
+                int incomingTurnNum = ((Number) tNumObj).intValue();
 
-                        if ("COMPLETED".equals(status)) {
-                            handleMatchCompletion(winnerId);
+                // Only handle turns for the current round
+                if (incomingTurnNum != currentTurnNumber) return;
+
+                PlayedTurnDTO enemyTurn = new PlayedTurnDTO();
+                enemyTurn.setPlayerId(sender);
+                enemyTurn.setTurnNumber(incomingTurnNum);
+
+                // Parsing Logic
+                List<Map<String, Object>> actionsMapList = (List<Map<String, Object>>) turnData.get("actions");
+                List<PlayedActionDTO> actionDtoList = new ArrayList<>();
+                if (actionsMapList != null) {
+                    for (Map<String, Object> actionMap : actionsMapList) {
+                        PlayedActionDTO actionDto = new PlayedActionDTO();
+                        actionDto.setLaneId((String) actionMap.get("laneId"));
+                        Map<String, Object> cardMap = (Map<String, Object>) actionMap.get("card");
+                        if (cardMap != null) {
+                            CardDTO cardDto = new CardDTO();
+                            cardDto.setCardId((String) cardMap.get("cardId"));
+                            cardDto.setHp(((Number) cardMap.getOrDefault("hp", 0)).intValue());
+                            cardDto.setAtk(((Number) cardMap.getOrDefault("atk", 0)).intValue());
+                            actionDto.setCard(cardDto);
                         }
+                        actionDtoList.add(actionDto);
                     }
+                }
+                enemyTurn.setActions(actionDtoList);
 
-                    @Override
-                    public void onMatchDeleted() {
-                        // CRITICAL: Match document is gone.
-                        handleMatchDeletion();
-                    }
+                // SYNC CHECK: Store data and check if we have submitted our turn
+                runOnUiThread(() -> {
+                    pendingEnemyTurn = enemyTurn;
+                    log("Opponent's turn " + incomingTurnNum + " received.");
 
-                    @Override
-                    public void onError(Exception e) {
-                        Log.e(TAG, "Match Status Listener Failed.", e);
+                    if (turnSubmitted) {
+                        log("Both ready! Commencing battle...");
+                        processBattle(pendingEnemyTurn);
+                    } else {
+                        log("Waiting for your move...");
                     }
                 });
-    }
 
-    private void handleMatchCompletion(String winnerId) {
-        stopAllListeners();
-        String message;
-        String currentUserId = UserPrefsUtils.getUsername(this);
-
-        if (currentUserId.equals(winnerId)) {
-            message = "CONGRATULATIONS! YOU WON THE MATCH!";
-        } else if (winnerId != null) {
-            message = "GAME OVER. You lost.";
-        } else {
-            message = "GAME ENDED IN A DRAW.";
-        }
-
-        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
-        // Prompt user to return to the main menu or a results screen
-        // For now, we will wait for deletion, but this sets the final UI state.
-    }
-
-    private void handleMatchDeletion() {
-        stopAllListeners();
-
-        // Use runOnUiThread because this callback comes from a background thread
-        runOnUiThread(() -> {
-            Toast.makeText(GameActivity.this, "Match has been finalized and removed.", Toast.LENGTH_LONG).show();
-            // Return to the previous screen (Main Menu)
-            finish();
+            } catch (Exception e) {
+                log("Parsing Error: " + e.getMessage());
+            }
         });
     }
 
-    private void stopAllListeners() {
-        if (turnListener != null) {
-            turnListener.remove();
-            turnListener = null;
-        }
-        if (matchStatusListener != null) {
-            matchStatusListener.remove();
-            matchStatusListener = null;
-        }
-    }
-
-    private void deleteMatch(){
-        FirebaseUtils.deleteMatch(
-                matchId,
-                unused -> {
-                    // Delete successful
-                    finish();
-                },
-                e -> {
-                    // Delete failed (optional handling)
-                    e.printStackTrace();
-                    // You could show a Toast here if you want
+    private void processBattle(PlayedTurnDTO enemyTurn) {
+        // 1. Setup enemy lanes
+        if (enemyTurn.getActions() != null) {
+            for (PlayedActionDTO action : enemyTurn.getActions()) {
+                if (action != null && action.getLaneId() != null && action.getCard() != null) {
+                    int lane = Integer.parseInt(action.getLaneId());
+                    CardDTO c = action.getCard();
+                    enemyLanes.set(lane, new FighterCard(c.getCardId(), "Enemy", c.getHp(), c.getAtk(), new ArrayList<>()));
                 }
-        );
+            }
+        }
+
+        // 2. Resolve Battle Logic
+        BattlefieldUtils.fieldBattle(playerLanes, enemyLanes, playerHero, enemyHero);
+
+        // 3. UI Update & Reset Synchronization Gates
+        runOnUiThread(() -> {
+            refreshLaneUI();
+            updateHeroUI();
+
+            // Increment Turn and Reset
+            currentTurnNumber++;
+            turnSubmitted = false;
+            pendingEnemyTurn = null;
+            actionSequence.clear();
+
+            btnSendTurn.setEnabled(true);
+            log("--- Round " + currentTurnNumber + " Start ---");
+            checkWinCondition();
+        });
     }
 
+    private void refreshLaneUI() {
+        for (int i = 0; i < 5; i++) {
+            ImageView pLane = (ImageView) playerLaneContainer.getChildAt(i);
+            FighterCard pC = playerLanes.get(i);
+            if (pC != null && pC.getHp() > 0) {
+                int resId = getResources().getIdentifier("im_" + pC.getId(), "drawable", getPackageName());
+                pLane.setImageResource(resId);
+            } else {
+                pLane.setImageResource(android.R.color.transparent);
+                playerLanes.set(i, null);
+            }
 
+            ImageView eLane = (ImageView) enemyLaneContainer.getChildAt(i);
+            FighterCard eC = enemyLanes.get(i);
+            if (eC != null && eC.getHp() > 0) {
+                int resId = getResources().getIdentifier("im_" + eC.getId(), "drawable", getPackageName());
+                eLane.setImageResource(resId);
+            } else {
+                eLane.setImageResource(android.R.color.transparent);
+                enemyLanes.set(i, null);
+            }
+        }
+    }
 
-    // Clean up listeners in onDestroy
+    private void updateHeroUI() {
+        txtMyHero.setText("YOUR HERO: " + playerHero.getHealth() + " HP");
+        txtOpponentHero.setText("ENEMY HERO: " + enemyHero.getHealth() + " HP");
+    }
+
+    private void checkWinCondition() {
+        if (playerHero.getHealth() <= 0 || enemyHero.getHealth() <= 0) {
+            String result = (playerHero.getHealth() > 0) ? "VICTORY!" : "DEFEAT!";
+            log("GAME OVER: " + result);
+            btnSendTurn.setEnabled(false);
+            Toast.makeText(this, result, Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void log(String msg) {
+        txtLog.append("\n> " + msg);
+        // Optional: Add auto-scroll for the log here
+    }
+
+    private void quitGame() {
+        if (turnListener != null) turnListener.remove();
+        FirebaseUtils.deleteMatch(matchId);
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        startActivity(intent);
+        finish();
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (matchId != null)
-            deleteMatch();//TODO לא עובד לכן אשתמש בטיימר מהמשתמש השני לבדוק מתי השחקן השני שולח הודעה
-        stopAllListeners();
-
-
+        if (turnListener != null) turnListener.remove();
     }
 }

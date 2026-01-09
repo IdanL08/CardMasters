@@ -12,6 +12,11 @@ public abstract class Card {
     }
     public Card() {} // Required for Firebase
 
+    public Card(String id, String name) {
+        this.id = id;
+        this.name = name;
+    }
+
     public String getId() { return id; }
     public String getName() { return name; }
     public int getCost() { return cost; }

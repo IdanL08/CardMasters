@@ -1,7 +1,9 @@
 package com.example.cardmasters.model.dto;
 
 import com.google.firebase.Timestamp;
+import com.google.firebase.firestore.FieldValue;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,8 +25,15 @@ public class PlayedTurnDTO {
     public Map<String, Object> toMap() {
         Map<String, Object> map = new HashMap<>();
         map.put("playerId", playerId);
-        map.put("actions", actions); // Must be serializable
-        map.put("submittedAt", Timestamp.now());
+         map.put("turnNumber", turnNumber);
+        map.put("submittedAt", FieldValue.serverTimestamp());
+
+        List<Map<String, Object>> actionsList = new ArrayList<>();
+        for (PlayedActionDTO action : actions) {
+            actionsList.add(action.toMap());
+        }
+        map.put("actions", actionsList);
+
         return map;
     }
 

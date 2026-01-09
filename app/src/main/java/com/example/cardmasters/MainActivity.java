@@ -60,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
         // === ACTIVITY INTENTS ===
 
         btnGame.setOnClickListener(v ->
-                startActivity(new Intent(this, GameActivity.class)));
+                startActivity(new Intent(this, MatchmakingActivity.class)));
 
 
         btnCollection.setOnClickListener(v ->

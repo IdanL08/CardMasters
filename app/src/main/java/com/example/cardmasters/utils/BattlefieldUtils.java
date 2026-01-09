@@ -38,8 +38,8 @@ public class BattlefieldUtils {
 
         // CASE 1: Both lanes have cards (FIGHT!)
         if (pCard != null && eCard != null) {
-            int pAtk = pCard.getFinalAtk();
-            int eAtk = eCard.getFinalAtk();
+            int pAtk = pCard.getAtk();
+            int eAtk = eCard.getAtk();
 
             pCard.takeDamage(eAtk);
             eCard.takeDamage(pAtk);
@@ -55,7 +55,7 @@ public class BattlefieldUtils {
 
         // CASE 2: Player has a card, Enemy lane is empty (DIRECT ATTACK)
         else if (pCard != null) {
-            int damage = pCard.getFinalAtk();
+            int damage = pCard.getAtk();
             Log.d(TAG, pCard.getName() + " attacks Enemy Hero for " + damage);
             eHero.takeDamage(damage);
             applyAfterAttackEffects(pCard);
@@ -63,7 +63,7 @@ public class BattlefieldUtils {
 
         // CASE 3: Enemy has a card, Player lane is empty (DIRECT ATTACK)
         else if (eCard != null) {
-            int damage = eCard.getFinalAtk();
+            int damage = eCard.getAtk();
             Log.d(TAG, eCard.getName() + " attacks Player Hero for " + damage);
             pHero.takeDamage(damage);
             applyAfterAttackEffects(eCard);

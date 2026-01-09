@@ -7,8 +7,8 @@ import java.util.List;
 
 
 public class FighterCard extends Card {
-    private int baseHp;
-    private int baseAtk;
+    private int hp;
+    private int atk;
     private int currentDamage = 0; // Tracking damage taken
     private List<Effect> activeEffects = new ArrayList<>();
 
@@ -16,22 +16,22 @@ public class FighterCard extends Card {
 
     public FighterCard(String id, String name, int cost, int hp, int atk) {
         super(id, name, cost);
-        this.baseHp = hp;
-        this.baseAtk = atk;
+        this.hp = hp;
+        this.atk = atk;
     }
 
     // --- LOGIC METHODS ---
 
-    public int getFinalAtk() {
-        int atk = baseAtk;
+    public int getAtk() {
+        int atk = this.atk;
         for (Effect e : activeEffects) {
             if (e.getTarget() == Effect.Target.ATK) atk = e.apply(atk);
         }
         return atk;
     }
 
-    public int getFinalHp() {
-        int hp = baseHp;
+    public int getHp() {
+        int hp = this.hp;
         for (Effect e : activeEffects) {
             if (e.getTarget() == Effect.Target.HP) hp = e.apply(hp);
         }
@@ -43,16 +43,31 @@ public class FighterCard extends Card {
     }
 
     public boolean isDead() {
-        return getFinalHp() <= 0;
+        return getHp() <= 0;
     }
 
     public void addEffect(Effect effect) {
         activeEffects.add(effect);
     }
 
+    public FighterCard(String id, String name, int hp, int atk, List<Effect> activeEffects) {
+        super(id, name);
+        this.hp = hp;
+        this.atk = atk;
+        this.activeEffects = activeEffects;
+    }
+
+    public FighterCard(String id, String name, int cost, int hp, List<Effect> activeEffects, int currentDamage, int atk) {
+        super(id, name, cost);
+        this.hp = hp;
+        this.activeEffects = activeEffects;
+        this.currentDamage = currentDamage;
+        this.atk = atk;
+    }
+
     @Override
     public FighterCard cloneCard() {
-        FighterCard clone = new FighterCard(id, name, cost, baseHp, baseAtk);
+        FighterCard clone = new FighterCard(id, name, cost, hp, atk);
         clone.currentDamage = this.currentDamage;
         // Deep copy the effects
         for (Effect e : this.activeEffects) {
@@ -61,8 +76,7 @@ public class FighterCard extends Card {
         return clone;
     }
 
-    // Getters/Setters for Firebase
-    public int getBaseHp() { return baseHp; }
-    public int getBaseAtk() { return baseAtk; }
+
+
     public List<Effect> getActiveEffects() { return activeEffects; }
 }

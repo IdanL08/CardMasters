@@ -1,6 +1,9 @@
 package com.example.cardmasters.model.dto;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class CardDTO {
 
@@ -38,4 +41,16 @@ public class CardDTO {
 
     public List<EffectDTO> getAppliedEffects() { return appliedEffects; }
     public void setAppliedEffects(List<EffectDTO> appliedEffects) { this.appliedEffects = appliedEffects; }
+    public Map<String, Object> toMap() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("cardId", cardId);
+        map.put("type", type);
+        map.put("hp", hp);
+        map.put("atk", atk);
+
+        // If you have effects/abilities, add them as a list
+        map.put("appliedEffects", new ArrayList<>());
+
+        return map;
+    }
 }
