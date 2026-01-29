@@ -46,6 +46,10 @@ public class FighterCard extends Card {
         return getHp() <= 0;
     }
 
+    public void onDeath(){
+        //apply on death effect
+    }
+
     public void addEffect(Effect effect) {
         activeEffects.add(effect);
     }

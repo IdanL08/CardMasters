@@ -22,6 +22,32 @@ public class BattlefieldUtils {
         for (int i = 0; i < NUM_LANES; i++) {
             laneBattle(i, playerLanes, enemyLanes, playerHero, enemyHero);
         }
+        handleDeaths(playerLanes, enemyLanes);
+    }
+
+    private static void handleDeaths(List<FighterCard> playerLanes, List<FighterCard> enemyLanes) {
+        for (int i = 0; i < NUM_LANES; i++) {
+
+            if (enemyLanes.get(i) != null && enemyLanes.get(i).isDead()&&playerLanes.get(i) != null && playerLanes.get(i).isDead()){
+                playerLanes.get(i).onDeath();
+                enemyLanes.get(i).onDeath();
+                playerLanes.set(i, null);
+                enemyLanes.set(i, null);
+                handleDeaths(playerLanes, enemyLanes);
+            }
+
+            // Handle Player Deaths
+            if (playerLanes.get(i) != null && playerLanes.get(i).isDead()) {
+                playerLanes.get(i).onDeath();
+                playerLanes.set(i, null);
+            }
+
+            // Handle Enemy Deaths
+            if (enemyLanes.get(i) != null && enemyLanes.get(i).isDead()) {
+                enemyLanes.get(i).onDeath();
+                enemyLanes.set(i, null);
+            }
+        }
     }
 
     /**

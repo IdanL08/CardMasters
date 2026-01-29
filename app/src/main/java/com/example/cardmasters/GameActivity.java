@@ -6,6 +6,8 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.DragEvent;
 import android.view.View;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -59,6 +61,14 @@ public class GameActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_game);
+
+        WindowInsetsController controller = getWindow().getInsetsController();
+        if (controller != null) {
+            controller.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+            controller.setSystemBarsBehavior(
+                    WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            );
+        }
 
         matchId = getIntent().getStringExtra("MATCH_ID");
         if (matchId == null) {
@@ -118,15 +128,31 @@ public class GameActivity extends AppCompatActivity {
         handContainer.removeAllViews();
 
         for (Card c : playerHand) {
-            ImageView cardImg = new ImageView(this);
-            int resId = getResources().getIdentifier("im_" + c.getId(), "drawable", getPackageName());
-            cardImg.setImageResource(resId != 0 ? resId : android.R.drawable.ic_menu_help);
+            // Inflate the complex layout instead of a simple ImageView
+            View cardView = getLayoutInflater().inflate(R.layout.item_fighter_lane, handContainer, false);
 
+            // Find the views inside the inflated card
+            ImageView art = cardView.findViewById(R.id.card_image);
+            TextView atkText = cardView.findViewById(R.id.atk_text);
+            TextView hpText = cardView.findViewById(R.id.hp_text);
+
+            // Set dimensions for the hand (usually taller than lanes)
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(220, 300);
             lp.setMargins(10, 0, 10, 0);
-            cardImg.setLayoutParams(lp);
+            cardView.setLayoutParams(lp);
 
-            cardImg.setOnLongClickListener(v -> {
+            if (c instanceof FighterCard) {
+                FighterCard fc = (FighterCard) c;
+                int resId = getResources().getIdentifier("im_" + fc.getId(), "drawable", getPackageName());
+                art.setImageResource(resId != 0 ? resId : android.R.drawable.ic_menu_help);
+
+                atkText.setText(String.valueOf(fc.getAtk()));
+                hpText.setText(String.valueOf(fc.getHp()));
+                atkText.setVisibility(View.VISIBLE);
+                hpText.setVisibility(View.VISIBLE);
+            }
+
+            cardView.setOnLongClickListener(v -> {
                 if (turnSubmitted) return false;
                 currentDraggingCard = (c instanceof FighterCard) ? (FighterCard) c : null;
                 ClipData data = ClipData.newPlainText("", "");
@@ -135,14 +161,15 @@ public class GameActivity extends AppCompatActivity {
                 v.setVisibility(View.INVISIBLE);
                 return true;
             });
-            handContainer.addView(cardImg);
+
+            handContainer.addView(cardView);
         }
     }
 
     private void setupDragAndDrop() {
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < BattlefieldUtils.NUM_LANES; i++) {
             final int laneIdx = i;
-            ImageView laneView = (ImageView) playerLaneContainer.getChildAt(i);
+            View laneView = playerLaneContainer.getChildAt(i);
 
             laneView.setOnDragListener((v, event) -> {
                 switch (event.getAction()) {
@@ -183,6 +210,10 @@ public class GameActivity extends AppCompatActivity {
                 return true;
             });
         }
+    }
+
+    public void setCurrentDraggingCard(FighterCard currentDraggingCard) {
+        this.currentDraggingCard = currentDraggingCard;
     }
 
     private void submitTurn() {
@@ -309,26 +340,33 @@ public class GameActivity extends AppCompatActivity {
     }
 
     private void refreshLaneUI() {
-        for (int i = 0; i < 5; i++) {
-            ImageView pLane = (ImageView) playerLaneContainer.getChildAt(i);
-            FighterCard pC = playerLanes.get(i);
-            if (pC != null && pC.getHp() > 0) {
-                int resId = getResources().getIdentifier("im_" + pC.getId(), "drawable", getPackageName());
-                pLane.setImageResource(resId);
-            } else {
-                pLane.setImageResource(android.R.color.transparent);
-                playerLanes.set(i, null);
-            }
+        for (int i = 0; i < BattlefieldUtils.NUM_LANES; i++) {
+            // Find the parent layouts for the lanes
+            View pLaneView = playerLaneContainer.getChildAt(i);
+            View eLaneView = enemyLaneContainer.getChildAt(i);
 
-            ImageView eLane = (ImageView) enemyLaneContainer.getChildAt(i);
-            FighterCard eC = enemyLanes.get(i);
-            if (eC != null && eC.getHp() > 0) {
-                int resId = getResources().getIdentifier("im_" + eC.getId(), "drawable", getPackageName());
-                eLane.setImageResource(resId);
-            } else {
-                eLane.setImageResource(android.R.color.transparent);
-                enemyLanes.set(i, null);
-            }
+            updateLaneUI(pLaneView, playerLanes.get(i));
+            updateLaneUI(eLaneView, enemyLanes.get(i));
+        }
+    }
+
+    private void updateLaneUI(View laneView, FighterCard card) {
+        ImageView art = laneView.findViewById(R.id.card_image);
+        TextView atkText = laneView.findViewById(R.id.atk_text);
+        TextView hpText = laneView.findViewById(R.id.hp_text);
+
+        if (card != null) {
+            int resId = getResources().getIdentifier("im_" + card.getId(), "drawable", getPackageName());
+            art.setImageResource(resId);
+            atkText.setText(String.valueOf(card.getAtk()));
+            hpText.setText(String.valueOf(card.getHp()));
+
+            atkText.setVisibility(View.VISIBLE);
+            hpText.setVisibility(View.VISIBLE);
+        } else {
+            art.setImageResource(android.R.color.transparent);
+            atkText.setVisibility(View.INVISIBLE);
+            hpText.setVisibility(View.INVISIBLE);
         }
     }
 

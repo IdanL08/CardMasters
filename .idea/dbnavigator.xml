@@ -4,11 +4,6 @@
     <mappings />
     <preferences />
   </component>
-  <component name="DBNavigator.Project.DataEditorManager">
-    <record-view-column-sorting-type value="BY_INDEX" />
-    <value-preview-text-wrapping value="false" />
-    <value-preview-pinned value="false" />
-  </component>
   <component name="DBNavigator.Project.DatabaseAssistantManager">
     <assistants>
       <assistant-state connection-id="76a47bd9-be1e-49ea-8748-6e662ea99362" default-profile-name="" selected-conversation-id="" assistant-type="GENERIC" availability="UNAVAILABLE" acknowledgement="NONE">
@@ -19,33 +14,13 @@
       </assistant-state>
     </assistants>
   </component>
-  <component name="DBNavigator.Project.DatabaseBrowserManager">
-    <autoscroll-to-editor value="false" />
-    <autoscroll-from-editor value="true" />
-    <show-object-properties value="false" />
-    <loaded-nodes />
-  </component>
   <component name="DBNavigator.Project.DatabaseConsoleManager">
     <connection id="a15382f7-8248-4947-bbfe-5d9c803fdbc2">
       <console name="Connection" type="STANDARD" schema="CardMasters" session="Main" />
     </connection>
   </component>
-  <component name="DBNavigator.Project.DatabaseEditorStateManager">
-    <last-used-providers />
-  </component>
   <component name="DBNavigator.Project.DatabaseFileManager">
     <open-files />
-  </component>
-  <component name="DBNavigator.Project.ExecutionManager">
-    <retain-sticky-names value="false" />
-  </component>
-  <component name="DBNavigator.Project.MethodExecutionManager">
-    <method-browser />
-    <execution-history>
-      <group-entries value="true" />
-      <execution-inputs />
-    </execution-history>
-    <execution-variables-cache />
   </component>
   <component name="DBNavigator.Project.ObjectQuickFilterManager">
     <last-used-operator value="EQUAL" />
