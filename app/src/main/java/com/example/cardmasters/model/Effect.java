@@ -1,6 +1,10 @@
 package com.example.cardmasters.model;
 
+import com.example.cardmasters.model.cards.FighterCard;
+
 public class Effect {
+
+
     public enum Type { ADD, MULTIPLY }
     public enum Target { HP, ATK }
 
@@ -24,6 +28,8 @@ public class Effect {
     }
 
     // Getters and Setters for Firebase
+
+
     public Target getTarget() { return target; }
     public Type getType() { return type; }
     public int getValue() { return value; }

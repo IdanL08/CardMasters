@@ -26,6 +26,11 @@ public class CardDTO {
         this.appliedEffects = appliedEffects;
     }
 
+    public CardDTO(String id, String type) {
+        this.cardId=id;
+        this.type=type;
+    }
+
     // Getters & Setters
     public String getCardId() { return cardId; }
     public void setCardId(String cardId) { this.cardId = cardId; }
@@ -52,5 +57,9 @@ public class CardDTO {
         map.put("appliedEffects", new ArrayList<>());
 
         return map;
+    }
+
+    public void setCardType(String type) {
+        this.type = type;
     }
 }

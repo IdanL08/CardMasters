@@ -2,11 +2,15 @@ package com.example.cardmasters;
 
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Color;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
+import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -50,39 +54,55 @@ public class CollectionActivity extends AppCompatActivity {
         dbHelper.addCardsToCollection("fishboy", 2);
         dbHelper.addCardsToCollection("ghoul_cowboy",3);
         dbHelper.addCardsToCollection("robo_cowboy",4);
+        dbHelper.addCardsToCollection("emp",4);
+        dbHelper.addCardsToCollection("gambler",4);
 
         refreshUI();
     }
 
     // Helper method to create a view for each card (image + quantity)
-    private View createCardView(String cardId, Card c, int count, boolean isDeck) {
-        // Create a new card container (LinearLayout)
+    private View createCardView(String cardId, Card c, int count, boolean isDeck)/** credits (1)**/{
+        // This container is now "tight" - it won't expand past the card image
         LinearLayout cardLayout = new LinearLayout(this);
-        View cardView = UIUtils.createViewCard(getLayoutInflater(), cardLayout,c,this);
+        cardLayout.setOrientation(LinearLayout.VERTICAL);
 
-        // Add quantity text
-        cardLayout.addView(cardView);
+        // --- Quantity Text ---
         TextView qty = new TextView(this);
         qty.setText("x" + count);
-        qty.setTextColor(getResources().getColor(android.R.color.white));
-        qty.setGravity(Gravity.CENTER);
+        qty.setTextColor(Color.WHITE);
+        qty.setTextSize(14f);
+        qty.setTypeface(null, Typeface.BOLD);
+        qty.setGravity(Gravity.END); // Locked to the right side of the card
 
+        // --- Card Image ---
+        // UIUtils will define the width of the 'cardView'
+        View cardView = UIUtils.createViewCard(getLayoutInflater(), cardLayout, c, this);
 
         cardLayout.addView(qty);
+        cardLayout.addView(cardView);
 
-        // Handle card tap (add/remove logic)
+        // --- The No-Drift Grid Logic ---
+        GridLayout.LayoutParams gridParams = new GridLayout.LayoutParams();
+        gridParams.width = GridLayout.LayoutParams.WRAP_CONTENT;
+        gridParams.height = GridLayout.LayoutParams.WRAP_CONTENT;
+
+        // We manually set the gravity to TOP and START (Left)
+        // so they pack together instead of spreading out
+        gridParams.setGravity(Gravity.TOP | Gravity.START);
+
+        cardLayout.setLayoutParams(gridParams);
+
         cardLayout.setOnClickListener(v -> {
-            dbHelper.updateCardInDeck(cardId, !isDeck);  // Toggle the card from deck/collection
-            refreshUI();  // Refresh the UI after the update
+            dbHelper.updateCardInDeck(cardId, !isDeck);
+            refreshUI();
         });
 
         return cardLayout;
     }
-
     // Method to update UI with the current deck and collection data
     private void refreshUI() {
-        LinearLayout deckContainer = findViewById(R.id.deck_container);
-        LinearLayout collectionContainer = findViewById(R.id.collection_container);
+        GridLayout deckContainer = findViewById(R.id.deck_container);
+        GridLayout collectionContainer = findViewById(R.id.collection_container);
 
         // Clear previous views before refreshing
         deckContainer.removeAllViews();
@@ -136,7 +156,7 @@ public class CollectionActivity extends AppCompatActivity {
             }
 
 
-            int imageRes = getImageForCard(id); // Get the image resource for this card
+
 
             // If the card is in use (in the deck), show it in the deck section
             if (inUse > 0) {
@@ -153,20 +173,6 @@ public class CollectionActivity extends AppCompatActivity {
         cursor.close();
     }
 
-    // Helper method to get the image resource ID based on cardId
-    private int getImageForCard(String cardId) {
-        // Construct the resource name: "im_" + cardId (e.g., "im_fishboy")
-        String resourceName = "im_" + cardId;
 
-        // Get the resource ID dynamically from the drawable folder
-        int resId = getResources().getIdentifier(resourceName, "drawable", getPackageName());
-
-        // If resId is 0, it means the image doesn't exist in the drawables folder
-        if (resId == 0) {
-            return R.drawable.ic_launcher_foreground; // Your default fallback image
-        }
-
-        return resId;
-    }
 
 }

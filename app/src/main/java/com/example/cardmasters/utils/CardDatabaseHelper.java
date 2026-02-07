@@ -1,5 +1,7 @@
 package com.example.cardmasters.utils;
 
+
+
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -84,6 +86,39 @@ public class CardDatabaseHelper extends SQLiteOpenHelper {
         values.put("effect_type", type.name());
         values.put("effect_value", value);
         db.insert("cards_library", null, values);
+    }
+    public Card getCardById(String cardId){
+        SQLiteDatabase db = this.getReadableDatabase();
+        String query = "SELECT * FROM cards_library WHERE id==cardId";
+        Cursor cursor = db.rawQuery(query, null);
+        Card card=null;
+
+        if (cursor.moveToFirst()) {
+
+                String cardClass = cursor.getString(cursor.getColumnIndexOrThrow("card_class"));
+                String id = cursor.getString(cursor.getColumnIndexOrThrow("id"));
+                String name = cursor.getString(cursor.getColumnIndexOrThrow("name"));
+                int cost = cursor.getInt(cursor.getColumnIndexOrThrow("cost"));
+                int inUseQty = cursor.getInt(cursor.getColumnIndexOrThrow("in_use_quantity"));
+
+                if (inUseQty > 0) {
+
+                    if ("FIGHTER".equals(cardClass)) {
+                        int hp = cursor.getInt(cursor.getColumnIndexOrThrow("hp"));
+                        int atk = cursor.getInt(cursor.getColumnIndexOrThrow("atk"));
+                        card = new FighterCard(id, name, cost, hp, atk);
+                    } else {
+                        String targetStr = cursor.getString(cursor.getColumnIndexOrThrow("effect_target"));
+                        String typeStr = cursor.getString(cursor.getColumnIndexOrThrow("effect_type"));
+                        int val = cursor.getInt(cursor.getColumnIndexOrThrow("effect_value"));
+                        Effect effect = new Effect(Effect.Target.valueOf(targetStr), Effect.Type.valueOf(typeStr), val);
+                        card = new EffectCard(id, name, cost, effect);
+                    }
+
+                }
+
+    }
+        return card;
     }
 
     @Override

@@ -2,6 +2,7 @@ package com.example.cardmasters;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.DragEvent;
 import android.view.View;
 import android.view.WindowInsets;
@@ -17,6 +18,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.cardmasters.model.Hero;
 import com.example.cardmasters.model.cards.Card;
+import com.example.cardmasters.model.cards.EffectCard;
 import com.example.cardmasters.model.cards.FighterCard;
 import com.example.cardmasters.model.dto.CardDTO;
 import com.example.cardmasters.model.dto.PlayedActionDTO;
@@ -31,6 +33,7 @@ import com.google.firebase.firestore.ListenerRegistration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class GameActivity extends AppCompatActivity {
 
@@ -55,7 +58,7 @@ public class GameActivity extends AppCompatActivity {
     private PlayedTurnDTO pendingEnemyTurn = null; // Holds opponent's move if it arrives early
     private final List<PlayedActionDTO> actionSequence = new ArrayList<>();
     private ListenerRegistration turnListener;
-    private FighterCard currentDraggingCard = null;
+    private Card currentDraggingCard = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -157,16 +160,37 @@ public class GameActivity extends AppCompatActivity {
                         return true;
                     case DragEvent.ACTION_DROP:
                         v.setBackgroundColor(android.graphics.Color.TRANSPARENT);
-                        if (currentDraggingCard != null && playerLanes.get(laneIdx) == null) {
-                            playerLanes.set(laneIdx, currentDraggingCard);
-                            money-=currentDraggingCard.getCost();
+                        if(currentDraggingCard == null) return false;
+                        if(currentDraggingCard instanceof FighterCard){
+                            FighterCard fc = (FighterCard) currentDraggingCard;
+
+                        if ( playerLanes.get(laneIdx) == null) {
+                            playerLanes.set(laneIdx, fc);
+                            money-=fc.getCost();
                             txtMoney.setText("YOUR Money: "+String.valueOf(money));
                             CardDTO dto = new CardDTO(
-                                    currentDraggingCard.getId(),
+                                    fc.getId(),
                                     "FIGHTER",
-                                    currentDraggingCard.getHp(),
-                                    currentDraggingCard.getAtk(),
+                                    fc.getHp(),
+                                    fc.getAtk(),
                                     new ArrayList<>()
+                            );
+                            actionSequence.add(new PlayedActionDTO(String.valueOf(laneIdx), dto));
+
+                            //log("Placed " + currentDraggingCard.getName() + " in Lane " + laneIdx);
+                            refreshLaneUI();
+                            return true;
+                        }
+                        }
+                        else if(currentDraggingCard instanceof EffectCard){
+                            EffectCard ec = (EffectCard) currentDraggingCard;
+                            ec.applyEffect(playerLanes.get(laneIdx));
+                            money-=ec.getCost();
+                            txtMoney.setText("YOUR Money: "+String.valueOf(money));
+                            CardDTO dto = new CardDTO(
+                                    ec.getId(),
+                                    "EFFECT"
+
                             );
                             actionSequence.add(new PlayedActionDTO(String.valueOf(laneIdx), dto));
                             //log("Placed " + currentDraggingCard.getName() + " in Lane " + laneIdx);
@@ -174,6 +198,7 @@ public class GameActivity extends AppCompatActivity {
                             return true;
                         }
                         return false;
+
                     case DragEvent.ACTION_DRAG_ENDED:
                         View draggedView = (View) event.getLocalState();
                         if (draggedView != null) {
@@ -188,7 +213,7 @@ public class GameActivity extends AppCompatActivity {
         }
     }
 
-    public void setCurrentDraggingCard(FighterCard currentDraggingCard) {
+    public void setCurrentDraggingCard(Card currentDraggingCard) {
         this.currentDraggingCard = currentDraggingCard;
     }
 
@@ -247,14 +272,20 @@ public class GameActivity extends AppCompatActivity {
                 // Parsing Logic
                 List<Map<String, Object>> actionsMapList = (List<Map<String, Object>>) turnData.get("actions");
                 List<PlayedActionDTO> actionDtoList = new ArrayList<>();
+                Log.d(TAG, "parsing");
                 if (actionsMapList != null) {
+                    Log.d(TAG, "actionsMapList: "+actionsMapList);
                     for (Map<String, Object> actionMap : actionsMapList) {
+                        Log.d(TAG, "actionMap: "+actionMap);
                         PlayedActionDTO actionDto = new PlayedActionDTO();
                         actionDto.setLaneId((String) actionMap.get("laneId"));
                         Map<String, Object> cardMap = (Map<String, Object>) actionMap.get("card");
                         if (cardMap != null) {
+                            Log.d(TAG, "cardMap: "+cardMap);
                             CardDTO cardDto = new CardDTO();
                             cardDto.setCardId((String) cardMap.get("cardId"));
+                            cardDto.setCardType((String) cardMap.get("type"));
+                            Log.d(TAG, "cardMap.get(\"type\"): "+cardMap.get("type"));
                             cardDto.setHp(((Number) cardMap.getOrDefault("hp", 0)).intValue());
                             cardDto.setAtk(((Number) cardMap.getOrDefault("atk", 0)).intValue());
                             actionDto.setCard(cardDto);
@@ -267,7 +298,8 @@ public class GameActivity extends AppCompatActivity {
                 // SYNC CHECK: Store data and check if we have submitted our turn
                 runOnUiThread(() -> {
                     pendingEnemyTurn = enemyTurn;
-                    //log("Opponent's turn " + incomingTurnNum + " received.");
+
+
 
                     if (turnSubmitted) {
                         //log("Both ready! Commencing battle...");
@@ -290,7 +322,15 @@ public class GameActivity extends AppCompatActivity {
                 if (action != null && action.getLaneId() != null && action.getCard() != null) {
                     int lane = Integer.parseInt(action.getLaneId());
                     CardDTO c = action.getCard();
+                    Log.d(TAG, "processBattle: Card"+c.getType());
+                    if(Objects.equals(c.getType(), "FIGHTER")){
+                        Log.d(TAG, "processBattle: FighterCard"+c.getCardId());
                     enemyLanes.set(lane, new FighterCard(c.getCardId(), "Enemy", c.getHp(), c.getAtk(), new ArrayList<>()));
+                }
+                    else if(Objects.equals(c.getType(), "EFFECT")){
+                        EffectCard ec= new EffectCard(c.getCardId());
+                        ec.applyEffect(enemyLanes.get(lane));
+                    }
                 }
             }
         }

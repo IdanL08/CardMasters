@@ -74,8 +74,8 @@ public class UIUtils {
             // 2. Set the card on the activity instance
             if (c instanceof FighterCard) {
                 gameActivity.setCurrentDraggingCard( (FighterCard) c);
-            } else {
-                gameActivity.setCurrentDraggingCard( null);
+            } else if (c instanceof EffectCard){
+                gameActivity.setCurrentDraggingCard((EffectCard) c);
             }
 
             ClipData data = ClipData.newPlainText("", "");
