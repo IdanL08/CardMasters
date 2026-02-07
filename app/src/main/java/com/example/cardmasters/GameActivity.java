@@ -1,13 +1,20 @@
 package com.example.cardmasters;
 
 import android.content.Intent;
+import android.graphics.Rect;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.DragEvent;
+import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
+import android.view.animation.OvershootInterpolator;
 import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -59,6 +66,8 @@ public class GameActivity extends AppCompatActivity {
     private final List<PlayedActionDTO> actionSequence = new ArrayList<>();
     private ListenerRegistration turnListener;
     private Card currentDraggingCard = null;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -315,47 +324,117 @@ public class GameActivity extends AppCompatActivity {
         });
     }
 
-    private void processBattle(PlayedTurnDTO enemyTurn) {
-        // 1. Setup enemy lanes
-        if (enemyTurn.getActions() != null) {
-            for (PlayedActionDTO action : enemyTurn.getActions()) {
-                if (action != null && action.getLaneId() != null && action.getCard() != null) {
-                    int lane = Integer.parseInt(action.getLaneId());
-                    CardDTO c = action.getCard();
-                    Log.d(TAG, "processBattle: Card"+c.getType());
-                    if(Objects.equals(c.getType(), "FIGHTER")){
-                        Log.d(TAG, "processBattle: FighterCard"+c.getCardId());
-                    enemyLanes.set(lane, new FighterCard(c.getCardId(), "Enemy", c.getHp(), c.getAtk(), new ArrayList<>()));
-                }
-                    else if(Objects.equals(c.getType(), "EFFECT")){
-                        EffectCard ec= new EffectCard(c.getCardId());
-                        ec.applyEffect(enemyLanes.get(lane));
-                    }
-                }
-            }
+    private void processBattle(PlayedTurnDTO enemyTurn)/** (2)**/ {
+        if (enemyTurn.getActions() == null || enemyTurn.getActions().isEmpty()) {
+            finalizeBattle(); // No actions, go straight to math
+            return;
         }
 
-        // 2. Resolve Battle Logic
+        List<PlayedActionDTO> actions = enemyTurn.getActions();
+        processActionStep(actions, 0);
+    }
+
+    private void processActionStep(List<PlayedActionDTO> actions, int index) /** (2)**/{//פעולה רקורסיבית
+        // Base case: All actions shown, now run the math and UI refresh
+        if (index >= actions.size()) {
+            finalizeBattle();
+            return;
+        }
+
+        PlayedActionDTO action = actions.get(index);
+        int lane = Integer.parseInt(action.getLaneId());
+        CardDTO c = action.getCard();
+
+        if (Objects.equals(c.getType(), "FIGHTER")) {
+            // Update data and refresh UI immediately
+            enemyLanes.set(lane, new FighterCard(c.getCardId(), "Enemy", c.getHp(), c.getAtk(), new ArrayList<>()));
+            refreshLaneUI();
+
+            // Wait 200ms then move to next action
+            new Handler(Looper.getMainLooper()).postDelayed(() -> processActionStep(actions, index + 1), 200);
+
+        } else if (Objects.equals(c.getType(), "EFFECT")) {
+            // Trigger the fancy animation
+            showEffectAnimation(c, lane, () -> {
+                // This callback runs AFTER the animation finishes
+                EffectCard ec = new EffectCard(c.getCardId());
+                ec.applyEffect(enemyLanes.get(lane));
+                refreshLaneUI();
+                processActionStep(actions, index + 1);
+            });
+        }
+    }
+
+    private void showEffectAnimation(CardDTO card, int laneId, Runnable onComplete)/** (2)**/ {
+        // 1. Get the Lane (The actual container for that specific slot)
+        ViewGroup laneView = (ViewGroup) enemyLaneContainer.getChildAt(laneId);
+
+        if (laneView == null) {
+            onComplete.run();
+            return;
+        }
+
+        // 2. CRITICAL: Disable clipping so the card can "float" outside the lane boundaries
+        laneView.setClipChildren(false);
+        laneView.setClipToPadding(false);
+        ((ViewGroup)laneView.getParent()).setClipChildren(false);
+        ((ViewGroup)laneView.getParent()).setClipToPadding(false);
+
+        // 3. Create the Card View
+        ImageView effectView = new ImageView(this);
+        effectView.setImageResource(UIUtils.getImageForCard(this, card.getCardId()));
+
+        // Size it relative to the lane or fixed DP
+        int width = (int) (110 * getResources().getDisplayMetrics().density);
+        int height = (int) (150 * getResources().getDisplayMetrics().density);
+
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(width, height);
+        params.gravity = Gravity.CENTER; // This handles RTL/LTR automatically!
+        effectView.setLayoutParams(params);
+
+        // 4. Reset for animation
+        effectView.setScaleX(0f);
+        effectView.setScaleY(0f);
+        effectView.setAlpha(0f);
+        effectView.setElevation(10f); // Make sure it sits "above" other cards
+
+        laneView.addView(effectView);
+
+        // 5. Animation
+        effectView.animate()
+                .scaleX(1.4f).scaleY(1.4f).alpha(1f)
+                .setDuration(450)
+                .setInterpolator(new OvershootInterpolator())
+                .withEndAction(() -> {
+                    effectView.animate()
+                            .alpha(0f)
+                            .scaleX(0.8f).scaleY(0.8f)
+                            .setStartDelay(600)
+                            .setDuration(300)
+                            .withEndAction(() -> {
+                                laneView.removeView(effectView);
+                                onComplete.run();
+                            });
+                });
+    }
+
+    private void finalizeBattle() {
+        // Calculate the actual math results
         BattlefieldUtils.fieldBattle(playerLanes, enemyLanes, playerHero, enemyHero);
 
-        // 3. UI Update & Reset Synchronization Gates
         runOnUiThread(() -> {
             refreshLaneUI();
             updateHeroUI();
 
-
-
-            // Increment Turn and Reset
             currentTurnNumber++;
-            money=currentTurnNumber;
+            money = currentTurnNumber;
             turnSubmitted = false;
             pendingEnemyTurn = null;
             actionSequence.clear();
 
             btnSendTurn.setEnabled(true);
-            //log("--- Round " + currentTurnNumber + " Start ---");
             checkWinCondition();
-            txtMoney.setText("YOUR Money: "+String.valueOf(money));
+            txtMoney.setText("YOUR Money: " + money);
         });
     }
 
