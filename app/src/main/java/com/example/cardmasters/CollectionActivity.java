@@ -5,13 +5,21 @@ import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.cardmasters.model.cards.Card;
+import com.example.cardmasters.model.cards.EffectCard;
+import com.example.cardmasters.model.cards.FighterCard;
 import com.example.cardmasters.utils.CardDatabaseHelper;
+import com.example.cardmasters.utils.UIUtils;
+
+import java.util.Objects;
 
 public class CollectionActivity extends AppCompatActivity {
 
@@ -21,6 +29,14 @@ public class CollectionActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_collection);
+
+        WindowInsetsController controller = getWindow().getInsetsController();
+        if (controller != null) {
+            controller.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+            controller.setSystemBarsBehavior(
+                    WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            );
+        }
 
         dbHelper = new CardDatabaseHelper(this);
 
@@ -39,35 +55,28 @@ public class CollectionActivity extends AppCompatActivity {
     }
 
     // Helper method to create a view for each card (image + quantity)
-    private View createCardView(String cardId, int imageRes, int count, boolean isDeck) {
+    private View createCardView(String cardId, Card c, int count, boolean isDeck) {
         // Create a new card container (LinearLayout)
-        LinearLayout card = new LinearLayout(this);
-        card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding(8, 8, 8, 8);
-        card.setGravity(Gravity.CENTER);
-
-        // Add image
-        ImageView image = new ImageView(this);
-        image.setImageResource(imageRes);
-        image.setLayoutParams(new LinearLayout.LayoutParams(220, 300));
-        image.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        LinearLayout cardLayout = new LinearLayout(this);
+        View cardView = UIUtils.createViewCard(getLayoutInflater(), cardLayout,c,this);
 
         // Add quantity text
+        cardLayout.addView(cardView);
         TextView qty = new TextView(this);
         qty.setText("x" + count);
         qty.setTextColor(getResources().getColor(android.R.color.white));
         qty.setGravity(Gravity.CENTER);
 
-        card.addView(image);
-        card.addView(qty);
+
+        cardLayout.addView(qty);
 
         // Handle card tap (add/remove logic)
-        card.setOnClickListener(v -> {
+        cardLayout.setOnClickListener(v -> {
             dbHelper.updateCardInDeck(cardId, !isDeck);  // Toggle the card from deck/collection
             refreshUI();  // Refresh the UI after the update
         });
 
-        return card;
+        return cardLayout;
     }
 
     // Method to update UI with the current deck and collection data
@@ -80,6 +89,7 @@ public class CollectionActivity extends AppCompatActivity {
         collectionContainer.removeAllViews();
 
         SQLiteDatabase db = dbHelper.getReadableDatabase();
+        Card c=null;
 
         TextView deckSizeLabel = findViewById(R.id.deck_size_label);
         int deckSize = dbHelper.getDeckSize();
@@ -93,26 +103,50 @@ public class CollectionActivity extends AppCompatActivity {
 
         // Query to get all cards in the collection
         Cursor cursor = db.rawQuery(
-                "SELECT card_id, quantity, in_use_quantity FROM collection",
+                "SELECT " +
+                        "cards_library.id AS card_id, " +
+                        "collection.quantity, " +
+                        "collection.in_use_quantity, " +
+                        "cards_library.name, " +
+                        "cards_library.cost, " +
+                        "cards_library.hp, " +
+                        "cards_library.atk, " +
+                        "cards_library.card_class " +
+                        "FROM cards_library " +
+                        "INNER JOIN collection ON cards_library.id = collection.id",
                 null
         );
 
+
         while (cursor.moveToNext()) {
-            String cardId = cursor.getString(0);
+            String id = cursor.getString(0);
             int quantity = cursor.getInt(1);
             int inUse = cursor.getInt(2);
+            String name = cursor.getString(3);
+            int cost = cursor.getInt(4);
+            int hp = cursor.getInt(5);
+            int atk = cursor.getInt(6);
+            String card_class = cursor.getString(7);
+            if(Objects.equals(card_class, "FIGHTER"))
+                {
+                    c=new FighterCard( id,  name,  cost,  hp,  atk);
+                }
+            else if(Objects.equals(card_class, "EFFECT")){
+                c= new EffectCard(id,name, cost);
+            }
 
-            int imageRes = getImageForCard(cardId); // Get the image resource for this card
+
+            int imageRes = getImageForCard(id); // Get the image resource for this card
 
             // If the card is in use (in the deck), show it in the deck section
             if (inUse > 0) {
-                deckContainer.addView(createCardView(cardId, imageRes, inUse, true));
+                deckContainer.addView(createCardView(id, c, inUse, true));
             }
 
             // If there are any cards available in the collection, show them
             int available = quantity - inUse;
             if (available > 0) {
-                collectionContainer.addView(createCardView(cardId, imageRes, available, false));
+                collectionContainer.addView(createCardView(id, c, available, false));
             }
         }
 

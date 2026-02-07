@@ -31,11 +31,12 @@
         android:layout_height="100dp"
         android:orientation="horizontal"
         android:weightSum="5">
-        <ImageView android:id="@+id/laneE0" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#1A1A1A" android:layout_margin="2dp" android:scaleType="fitCenter" android:padding="4dp"/>
-        <ImageView android:id="@+id/laneE1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#1A1A1A" android:layout_margin="2dp" android:scaleType="fitCenter" android:padding="4dp"/>
-        <ImageView android:id="@+id/laneE2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#1A1A1A" android:layout_margin="2dp" android:scaleType="fitCenter" android:padding="4dp"/>
-        <ImageView android:id="@+id/laneE3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#1A1A1A" android:layout_margin="2dp" android:scaleType="fitCenter" android:padding="4dp"/>
-        <ImageView android:id="@+id/laneE4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#1A1A1A" android:layout_margin="2dp" android:scaleType="fitCenter" android:padding="4dp"/>
+
+        <include android:id="@+id/laneE0" layout="@layout/item_fighter_lane" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+        <include android:id="@+id/laneE1" layout="@layout/item_fighter_lane" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+        <include android:id="@+id/laneE2" layout="@layout/item_fighter_lane" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+        <include android:id="@+id/laneE3" layout="@layout/item_fighter_lane" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+        <include android:id="@+id/laneE4" layout="@layout/item_fighter_lane" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
     </LinearLayout>
 
     <View
@@ -50,11 +51,12 @@
         android:layout_height="100dp"
         android:orientation="horizontal"
         android:weightSum="5">
-        <ImageView android:id="@+id/laneP0" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#2C3E50" android:layout_margin="2dp" android:scaleType="fitCenter" android:padding="4dp"/>
-        <ImageView android:id="@+id/laneP1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#2C3E50" android:layout_margin="2dp" android:scaleType="fitCenter" android:padding="4dp"/>
-        <ImageView android:id="@+id/laneP2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#2C3E50" android:layout_margin="2dp" android:scaleType="fitCenter" android:padding="4dp"/>
-        <ImageView android:id="@+id/laneP3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#2C3E50" android:layout_margin="2dp" android:scaleType="fitCenter" android:padding="4dp"/>
-        <ImageView android:id="@+id/laneP4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#2C3E50" android:layout_margin="2dp" android:scaleType="fitCenter" android:padding="4dp"/>
+
+        <include android:id="@+id/laneP0" layout="@layout/item_fighter_lane" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+        <include android:id="@+id/laneP1" layout="@layout/item_fighter_lane" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+        <include android:id="@+id/laneP2" layout="@layout/item_fighter_lane" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+        <include android:id="@+id/laneP3" layout="@layout/item_fighter_lane" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+        <include android:id="@+id/laneP4" layout="@layout/item_fighter_lane" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
     </LinearLayout>
 
     <TextView
@@ -74,39 +76,33 @@
         android:fillViewport="true"
         android:layout_marginTop="10dp"
         android:background="#1A252F">
-
         <LinearLayout
             android:id="@+id/hand_container"
             android:layout_width="wrap_content"
             android:layout_height="160dp"
-            android:minWidth="900dp"
             android:orientation="horizontal"
             android:gravity="center"
             android:padding="8dp" />
     </HorizontalScrollView>
 
-
-    <LinearLayout
+    <TextView
+        android:id="@+id/txtMoney"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="8dp">
-        <Button android:id="@+id/btnSendTurn" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="End Turn" android:layout_marginStart="4dp"/>
-    </LinearLayout>
+        android:text="YOUR Money: 1"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="#FFFF00"
+        android:gravity="center"
+        android:layout_marginTop="8dp"/>
 
-    <TextView
-        android:id="@+id/txtLog"
+    <Button android:id="@+id/btnSendTurn"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:background="#000000"
-        android:padding="8dp"
-        android:textColor="#00FF00"
-        android:fontFamily="monospace"
-        android:scrollbars="vertical"
-        android:layout_marginTop="8dp"
-        android:textSize="10sp"
-        android:text="Waiting for game to start..." />
+        android:layout_height="wrap_content"
+        android:text="End Turn"
+        android:layout_marginTop="8dp"/>
+
+
 
     <Button
         android:id="@+id/btn_back_to_main"
@@ -115,7 +111,5 @@
         android:text="Quit"
         android:backgroundTint="#C0392B"
         android:layout_marginTop="4dp"/>
-
-    <Button android:id="@+id/btnStartListening" android:layout_width="wrap_content" android:layout_height="wrap_content" android:visibility="gone"/>
 
 </LinearLayout>

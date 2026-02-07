@@ -1,11 +1,11 @@
 package com.example.cardmasters;
 
-import android.content.ClipData;
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.DragEvent;
 import android.view.View;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -24,6 +24,7 @@ import com.example.cardmasters.model.dto.PlayedTurnDTO;
 import com.example.cardmasters.utils.BattlefieldUtils;
 import com.example.cardmasters.utils.CardDatabaseHelper;
 import com.example.cardmasters.utils.FirebaseUtils;
+import com.example.cardmasters.utils.UIUtils;
 import com.example.cardmasters.utils.UserPrefsUtils;
 import com.google.firebase.firestore.ListenerRegistration;
 
@@ -36,7 +37,7 @@ public class GameActivity extends AppCompatActivity {
     private static final String TAG = "GameActivity";
 
     // UI Components
-    private TextView txtMatchId, txtOpponentHero, txtMyHero, txtLog;
+    private TextView txtMatchId, txtOpponentHero, txtMyHero, txtMoney;
     private LinearLayout playerLaneContainer, enemyLaneContainer, handContainer;
     private Button btnSendTurn, btnBack;
 
@@ -49,6 +50,7 @@ public class GameActivity extends AppCompatActivity {
 
     // Turn Tracking & Synchronization
     private int currentTurnNumber = 1;
+    private int money=currentTurnNumber;
     private boolean turnSubmitted = false;
     private PlayedTurnDTO pendingEnemyTurn = null; // Holds opponent's move if it arrives early
     private final List<PlayedActionDTO> actionSequence = new ArrayList<>();
@@ -59,6 +61,14 @@ public class GameActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_game);
+
+        WindowInsetsController controller = getWindow().getInsetsController();
+        if (controller != null) {
+            controller.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+            controller.setSystemBarsBehavior(
+                    WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            );
+        }
 
         matchId = getIntent().getStringExtra("MATCH_ID");
         if (matchId == null) {
@@ -84,7 +94,7 @@ public class GameActivity extends AppCompatActivity {
         txtMatchId = findViewById(R.id.txtMatchId);
         txtOpponentHero = findViewById(R.id.txtOpponentHero);
         txtMyHero = findViewById(R.id.txtMyHero);
-        txtLog = findViewById(R.id.txtLog);
+        txtMoney= findViewById(R.id.txtMoney);
         playerLaneContainer = findViewById(R.id.player_lane_container);
         enemyLaneContainer = findViewById(R.id.enemy_lane_container);
         handContainer = findViewById(R.id.hand_container);
@@ -110,7 +120,11 @@ public class GameActivity extends AppCompatActivity {
 
         loadPlayerHand();
         updateHeroUI();
-        log("Battle sequence initialized. Round 1 Start!");
+        //log("Battle sequence initialized. Round 1 Start!");
+    }
+
+    public boolean getTurnSubmitted() {
+        return turnSubmitted;
     }
 
     private void loadPlayerHand() {
@@ -118,31 +132,18 @@ public class GameActivity extends AppCompatActivity {
         handContainer.removeAllViews();
 
         for (Card c : playerHand) {
-            ImageView cardImg = new ImageView(this);
-            int resId = getResources().getIdentifier("im_" + c.getId(), "drawable", getPackageName());
-            cardImg.setImageResource(resId != 0 ? resId : android.R.drawable.ic_menu_help);
+            // Inflate the complex layout instead of a simple ImageView
+            View cardView = UIUtils.createViewCard(getLayoutInflater(),  handContainer,  c,   this);
+            UIUtils.setDragDropListener(cardView,this,c);
 
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(220, 300);
-            lp.setMargins(10, 0, 10, 0);
-            cardImg.setLayoutParams(lp);
-
-            cardImg.setOnLongClickListener(v -> {
-                if (turnSubmitted) return false;
-                currentDraggingCard = (c instanceof FighterCard) ? (FighterCard) c : null;
-                ClipData data = ClipData.newPlainText("", "");
-                View.DragShadowBuilder shadow = new View.DragShadowBuilder(v);
-                v.startDragAndDrop(data, shadow, v, 0);
-                v.setVisibility(View.INVISIBLE);
-                return true;
-            });
-            handContainer.addView(cardImg);
+            handContainer.addView(cardView);
         }
     }
 
     private void setupDragAndDrop() {
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < BattlefieldUtils.NUM_LANES; i++) {
             final int laneIdx = i;
-            ImageView laneView = (ImageView) playerLaneContainer.getChildAt(i);
+            View laneView = playerLaneContainer.getChildAt(i);
 
             laneView.setOnDragListener((v, event) -> {
                 switch (event.getAction()) {
@@ -158,6 +159,8 @@ public class GameActivity extends AppCompatActivity {
                         v.setBackgroundColor(android.graphics.Color.TRANSPARENT);
                         if (currentDraggingCard != null && playerLanes.get(laneIdx) == null) {
                             playerLanes.set(laneIdx, currentDraggingCard);
+                            money-=currentDraggingCard.getCost();
+                            txtMoney.setText("YOUR Money: "+String.valueOf(money));
                             CardDTO dto = new CardDTO(
                                     currentDraggingCard.getId(),
                                     "FIGHTER",
@@ -166,7 +169,7 @@ public class GameActivity extends AppCompatActivity {
                                     new ArrayList<>()
                             );
                             actionSequence.add(new PlayedActionDTO(String.valueOf(laneIdx), dto));
-                            log("Placed " + currentDraggingCard.getName() + " in Lane " + laneIdx);
+                            //log("Placed " + currentDraggingCard.getName() + " in Lane " + laneIdx);
                             refreshLaneUI();
                             return true;
                         }
@@ -185,6 +188,10 @@ public class GameActivity extends AppCompatActivity {
         }
     }
 
+    public void setCurrentDraggingCard(FighterCard currentDraggingCard) {
+        this.currentDraggingCard = currentDraggingCard;
+    }
+
     private void submitTurn() {
         if (turnSubmitted) return;
 
@@ -195,23 +202,23 @@ public class GameActivity extends AppCompatActivity {
         );
 
         btnSendTurn.setEnabled(false);
-        log("Sending turn " + currentTurnNumber + "...");
+        //log("Sending turn " + currentTurnNumber + "...");
 
         FirebaseUtils.submitTurn(matchId, turnDto, success -> {
             runOnUiThread(() -> {
                 if (success) {
                     turnSubmitted = true;
-                    log("Turn sent. Waiting for opponent...");
+                    //log("Turn sent. Waiting for opponent...");
 
                     // SYNC CHECK: If opponent already moved, start battle
                     if (pendingEnemyTurn != null && pendingEnemyTurn.getTurnNumber() == currentTurnNumber) {
-                        log("Opponent was waiting! Commencing battle...");
+                        //log("Opponent was waiting! Commencing battle...");
                         processBattle(pendingEnemyTurn);
                     }
                 } else {
                     turnSubmitted = false;
                     btnSendTurn.setEnabled(true);
-                    log("Send failed! Try again.");
+                    //log("Send failed! Try again.");
                 }
             });
         });
@@ -260,18 +267,18 @@ public class GameActivity extends AppCompatActivity {
                 // SYNC CHECK: Store data and check if we have submitted our turn
                 runOnUiThread(() -> {
                     pendingEnemyTurn = enemyTurn;
-                    log("Opponent's turn " + incomingTurnNum + " received.");
+                    //log("Opponent's turn " + incomingTurnNum + " received.");
 
                     if (turnSubmitted) {
-                        log("Both ready! Commencing battle...");
+                        //log("Both ready! Commencing battle...");
                         processBattle(pendingEnemyTurn);
                     } else {
-                        log("Waiting for your move...");
+                        //log("Waiting for your move...");
                     }
                 });
 
             } catch (Exception e) {
-                log("Parsing Error: " + e.getMessage());
+                //log("Parsing Error: " + e.getMessage());
             }
         });
     }
@@ -296,39 +303,50 @@ public class GameActivity extends AppCompatActivity {
             refreshLaneUI();
             updateHeroUI();
 
+
+
             // Increment Turn and Reset
             currentTurnNumber++;
+            money=currentTurnNumber;
             turnSubmitted = false;
             pendingEnemyTurn = null;
             actionSequence.clear();
 
             btnSendTurn.setEnabled(true);
-            log("--- Round " + currentTurnNumber + " Start ---");
+            //log("--- Round " + currentTurnNumber + " Start ---");
             checkWinCondition();
+            txtMoney.setText("YOUR Money: "+String.valueOf(money));
         });
     }
 
     private void refreshLaneUI() {
-        for (int i = 0; i < 5; i++) {
-            ImageView pLane = (ImageView) playerLaneContainer.getChildAt(i);
-            FighterCard pC = playerLanes.get(i);
-            if (pC != null && pC.getHp() > 0) {
-                int resId = getResources().getIdentifier("im_" + pC.getId(), "drawable", getPackageName());
-                pLane.setImageResource(resId);
-            } else {
-                pLane.setImageResource(android.R.color.transparent);
-                playerLanes.set(i, null);
-            }
+        for (int i = 0; i < BattlefieldUtils.NUM_LANES; i++) {
+            // Find the parent layouts for the lanes
+            View pLaneView = playerLaneContainer.getChildAt(i);
+            View eLaneView = enemyLaneContainer.getChildAt(i);
 
-            ImageView eLane = (ImageView) enemyLaneContainer.getChildAt(i);
-            FighterCard eC = enemyLanes.get(i);
-            if (eC != null && eC.getHp() > 0) {
-                int resId = getResources().getIdentifier("im_" + eC.getId(), "drawable", getPackageName());
-                eLane.setImageResource(resId);
-            } else {
-                eLane.setImageResource(android.R.color.transparent);
-                enemyLanes.set(i, null);
-            }
+            updateLaneUI(pLaneView, playerLanes.get(i));
+            updateLaneUI(eLaneView, enemyLanes.get(i));
+        }
+    }
+
+    private void updateLaneUI(View laneView, FighterCard card) {
+        ImageView art = laneView.findViewById(R.id.card_image);
+        TextView atkText = laneView.findViewById(R.id.atk_text);
+        TextView hpText = laneView.findViewById(R.id.hp_text);
+
+        if (card != null) {
+            int resId = getResources().getIdentifier("im_" + card.getId(), "drawable", getPackageName());
+            art.setImageResource(resId);
+            atkText.setText(String.valueOf(card.getAtk()));
+            hpText.setText(String.valueOf(card.getHp()));
+
+            atkText.setVisibility(View.VISIBLE);
+            hpText.setVisibility(View.VISIBLE);
+        } else {
+            art.setImageResource(android.R.color.transparent);
+            atkText.setVisibility(View.INVISIBLE);
+            hpText.setVisibility(View.INVISIBLE);
         }
     }
 
@@ -340,16 +358,13 @@ public class GameActivity extends AppCompatActivity {
     private void checkWinCondition() {
         if (playerHero.getHealth() <= 0 || enemyHero.getHealth() <= 0) {
             String result = (playerHero.getHealth() > 0) ? "VICTORY!" : "DEFEAT!";
-            log("GAME OVER: " + result);
+            //("GAME OVER: " + result);
             btnSendTurn.setEnabled(false);
             Toast.makeText(this, result, Toast.LENGTH_LONG).show();
         }
     }
 
-    private void log(String msg) {
-        txtLog.append("\n> " + msg);
-        // Optional: Add auto-scroll for the log here
-    }
+
 
     private void quitGame() {
         if (turnListener != null) turnListener.remove();
@@ -364,5 +379,9 @@ public class GameActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         if (turnListener != null) turnListener.remove();
+    }
+
+    public int getMoney() {
+        return money;
     }
 }

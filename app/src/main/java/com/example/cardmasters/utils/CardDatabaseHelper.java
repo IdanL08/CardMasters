@@ -40,10 +40,10 @@ public class CardDatabaseHelper extends SQLiteOpenHelper {
 
         // 2. THE COLLECTION (Tracks player-owned cards)
         db.execSQL("CREATE TABLE collection (" +
-                "card_id TEXT PRIMARY KEY, " +
+                "id TEXT PRIMARY KEY, " +
                 "quantity INTEGER, " +
                 "in_use_quantity INTEGER, " +
-                "FOREIGN KEY(card_id) REFERENCES cards_library(id))");
+                "FOREIGN KEY(id) REFERENCES cards_library(id))");
 
         preLoadCards(db);
     }
@@ -52,7 +52,7 @@ public class CardDatabaseHelper extends SQLiteOpenHelper {
         db.execSQL("DELETE FROM cards_library");
 
         // Fighter Cards
-        insertFighter(db, "fishboy", "Fish Boy", 3, 12, 4);
+        insertFighter(db, "fishboy", "Fish Boy", 1, 12, 4);
         insertFighter(db, "nepton", "Nepton", 5, 20, 6);
         insertFighter(db, "sponge", "Sponge", 2, 8, 2);
         insertFighter(db, "gambler", "Gambler", 4, 15, 5);
@@ -98,7 +98,7 @@ public class CardDatabaseHelper extends SQLiteOpenHelper {
         List<Card> deckList = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
 
-        String query = "SELECT * FROM cards_library INNER JOIN collection ON cards_library.id = collection.card_id";
+        String query = "SELECT * FROM cards_library INNER JOIN collection ON cards_library.id = collection.id";
         Cursor cursor = db.rawQuery(query, null);
 
         if (cursor.moveToFirst()) {
@@ -139,7 +139,7 @@ public class CardDatabaseHelper extends SQLiteOpenHelper {
     public void addCardsToCollection(String cardId, int amount) {
         if (amount <= 0) return;
         SQLiteDatabase db = this.getWritableDatabase();
-        String selectQuery = "SELECT quantity FROM collection WHERE card_id = ?";
+        String selectQuery = "SELECT quantity FROM collection WHERE id = ?";
         Cursor cursor = db.rawQuery(selectQuery, new String[]{cardId});
         int newQuantity = amount;
         if (cursor.moveToFirst()) {
@@ -147,10 +147,10 @@ public class CardDatabaseHelper extends SQLiteOpenHelper {
             newQuantity += currentQuantity;
             ContentValues values = new ContentValues();
             values.put("quantity", newQuantity);
-            db.update("collection", values, "card_id = ?", new String[]{cardId});
+            db.update("collection", values, "id = ?", new String[]{cardId});
         } else {
             ContentValues values = new ContentValues();
-            values.put("card_id", cardId);
+            values.put("id", cardId);
             values.put("quantity", newQuantity);
             values.put("in_use_quantity", 0);
             db.insert("collection", null, values);
@@ -160,7 +160,7 @@ public class CardDatabaseHelper extends SQLiteOpenHelper {
 
     public void updateCardInDeck(String cardId, boolean addCard) {
         SQLiteDatabase db = this.getWritableDatabase();
-        String query = "SELECT quantity, in_use_quantity FROM collection WHERE card_id = ?";
+        String query = "SELECT quantity, in_use_quantity FROM collection WHERE id = ?";
         Cursor cursor = db.rawQuery(query, new String[]{cardId});
         if (!cursor.moveToFirst()) {
             cursor.close();
@@ -172,12 +172,12 @@ public class CardDatabaseHelper extends SQLiteOpenHelper {
         if (addCard) {
             if (inUseQuantity < ownedQuantity) {
                 values.put("in_use_quantity", inUseQuantity + 1);
-                db.update("collection", values, "card_id = ?", new String[]{cardId});
+                db.update("collection", values, "id = ?", new String[]{cardId});
             }
         } else {
             if (inUseQuantity > 0) {
                 values.put("in_use_quantity", inUseQuantity - 1);
-                db.update("collection", values, "card_id = ?", new String[]{cardId});
+                db.update("collection", values, "id = ?", new String[]{cardId});
             }
         }
         cursor.close();

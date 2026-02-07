@@ -12,6 +12,10 @@ public class EffectCard extends Card {
         this.effectPayload = payload;
     }
 
+    public EffectCard(String id, String name, int cost) {
+        super(id, name, cost);
+    }
+
     @Override
     public EffectCard cloneCard() {
         return new EffectCard(id, name, cost,

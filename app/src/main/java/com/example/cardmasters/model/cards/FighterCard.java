@@ -14,6 +14,8 @@ public class FighterCard extends Card {
 
     public FighterCard() { super(); }
 
+
+
     public FighterCard(String id, String name, int cost, int hp, int atk) {
         super(id, name, cost);
         this.hp = hp;
@@ -44,6 +46,10 @@ public class FighterCard extends Card {
 
     public boolean isDead() {
         return getHp() <= 0;
+    }
+
+    public void onDeath(){
+        //apply on death effect
     }
 
     public void addEffect(Effect effect) {
