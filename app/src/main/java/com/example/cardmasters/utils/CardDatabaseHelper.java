@@ -159,7 +159,7 @@ public class CardDatabaseHelper extends SQLiteOpenHelper {
                     }
 
                     for (int i = 0; i < inUseQty; i++) {
-                        deckList.add(card.cloneCard());//TODO אולי לא צריך פה שכפול תבדוק
+                        deckList.add(card);
                     }
                 }
             } while (cursor.moveToNext());
