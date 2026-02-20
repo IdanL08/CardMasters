@@ -51,11 +51,7 @@ public class CollectionActivity extends AppCompatActivity {
         // Refresh UI based on the current state of the deck and collection
 
 
-        dbHelper.addCardsToCollection("fishboy", 2);
-        dbHelper.addCardsToCollection("ghoul_cowboy",3);
-        dbHelper.addCardsToCollection("robo_cowboy",4);
-        dbHelper.addCardsToCollection("emp",4);
-        dbHelper.addCardsToCollection("gambler",4);
+
 
         refreshUI();
     }

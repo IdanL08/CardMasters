@@ -159,7 +159,7 @@ public class CardDatabaseHelper extends SQLiteOpenHelper {
                     }
 
                     for (int i = 0; i < inUseQty; i++) {
-                        deckList.add(card.cloneCard());
+                        deckList.add(card.cloneCard());//TODO אולי לא צריך פה שכפול תבדוק
                     }
                 }
             } while (cursor.moveToNext());
@@ -171,6 +171,43 @@ public class CardDatabaseHelper extends SQLiteOpenHelper {
     // Remaining methods (addCardsToCollection, updateCardInDeck, clearDeck, getDeckSize)
     // stay the same as they only interact with the 'collection' table.
 
+
+    public Card getRandomCard() {
+        Card card = null;
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        // שליפת שורה רנדומלית מתוך ספריית הקלפים
+        String query = "SELECT * FROM cards_library ORDER BY RANDOM() LIMIT 1";
+        Cursor cursor = db.rawQuery(query, null);
+
+        if (cursor != null && cursor.moveToFirst()) {
+            // שדות משותפים לכל הקלפים
+            String id = cursor.getString(cursor.getColumnIndexOrThrow("id"));
+            String name = cursor.getString(cursor.getColumnIndexOrThrow("name"));
+            int cost = cursor.getInt(cursor.getColumnIndexOrThrow("cost"));
+            String card_class = cursor.getString(cursor.getColumnIndexOrThrow("card_class"));
+
+            // לוגיקה לפי סוג הקלף כפי שביקשת
+            if ("FIGHTER".equals(card_class)) {
+                int hp = cursor.getInt(cursor.getColumnIndexOrThrow("hp"));
+                int atk = cursor.getInt(cursor.getColumnIndexOrThrow("atk"));
+                card = new FighterCard(id, name, cost, hp, atk);
+            } else {
+                String targetStr = cursor.getString(cursor.getColumnIndexOrThrow("effect_target"));
+                String typeStr = cursor.getString(cursor.getColumnIndexOrThrow("effect_type"));
+                int val = cursor.getInt(cursor.getColumnIndexOrThrow("effect_value"));
+
+                Effect effect = new Effect(
+                        Effect.Target.valueOf(targetStr),
+                        Effect.Type.valueOf(typeStr),
+                        val
+                );
+                card = new EffectCard(id, name, cost, effect);
+            }
+            cursor.close();
+        }
+        return card;
+    }
     public void addCardsToCollection(String cardId, int amount) {
         if (amount <= 0) return;
         SQLiteDatabase db = this.getWritableDatabase();

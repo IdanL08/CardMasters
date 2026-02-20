@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools" >
 
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -11,12 +13,13 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.CardMasters" >
+
+        <receiver android:name=".utils.lootboxes_utils.LootBoxReceiver" android:enabled="true" android:exported="false" />
+
         <activity
             android:name=".GameActivity"
             android:exported="false" />
-        <activity
-            android:name=".LoginActivity"
-            android:exported="false" />
+
         <activity
             android:name=".RegisterActivity"
             android:exported="false" />
@@ -50,6 +53,7 @@
             android:name=".MainActivity"
             android:exported="false" >
         </activity>
+
     </application>
 
 </manifest>

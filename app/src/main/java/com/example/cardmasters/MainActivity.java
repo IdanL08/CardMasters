@@ -14,6 +14,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.cardmasters.utils.LeaderboardAdapter;
+import com.example.cardmasters.utils.lootboxes_utils.AlarmUtils;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -47,6 +48,9 @@ public class MainActivity extends AppCompatActivity {
             );
         }
 
+        AlarmUtils.checkNotificationPermission(this,this);
+        AlarmUtils.setupLootBoxAlarm(this, 10, 34);
+
         // Find views
         btnSettings = findViewById(R.id.btn_settings);
         btnTasks = findViewById(R.id.btn_tasks);
@@ -56,6 +60,8 @@ public class MainActivity extends AppCompatActivity {
         btnLootbox = findViewById(R.id.btn_lootbox);
         btnCollection = findViewById(R.id.btn_collection);
         btnLeaderboard = findViewById(R.id.btn_leaderboard);
+
+
 
         // === ACTIVITY INTENTS ===
 
