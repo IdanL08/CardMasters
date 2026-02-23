@@ -2,16 +2,13 @@ package com.example.cardmasters;
 
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
 import com.example.cardmasters.model.cards.Card;
 import com.example.cardmasters.utils.AnimatedChestView;
@@ -32,10 +29,9 @@ public class LootBoxActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_loot_box);
 
-        // אתחול
         dbHelper = new CardDatabaseHelper(this);
         prefs = getSharedPreferences("GamePrefs", MODE_PRIVATE);
-        lootboxCount = prefs.getInt("lootbox_count", 0);
+        lootboxCount = prefs.getInt("lootbox_count", 9);
 
         btnBack = findViewById(R.id.btn_back_to_main);
         chestView = findViewById(R.id.chestView);
@@ -44,9 +40,6 @@ public class LootBoxActivity extends AppCompatActivity {
         cardContainer = findViewById(R.id.cardContainer);
         tvLootboxCount = findViewById(R.id.tv_lootbox_count);
 
-
-
-        // עדכון UI ראשוני
         updateUI();
 
         btnOpen.setOnClickListener(v -> handleOpen(1));
@@ -55,58 +48,70 @@ public class LootBoxActivity extends AppCompatActivity {
     }
 
     private void handleOpen(int amount) {
-        // גריעת התיבות ושמירה
+        // 1. Update data immediately
         lootboxCount -= amount;
         prefs.edit().putInt("lootbox_count", lootboxCount).apply();
 
-        // ניקוי מסך ונעילת כפתורים
-        cardContainer.removeAllViews();
+        // 2. Immediate UI feedback: update text and disable buttons manually
+        tvLootboxCount.setText("Lootboxes: " + lootboxCount);
         btnOpen.setEnabled(false);
         btnOpen3.setEnabled(false);
+        btnOpen.setAlpha(0.5f);
+        btnOpen3.setAlpha(0.5f);
 
-        updateUI(); // יעדכן את ה-Alpha מיד
+        cardContainer.removeAllViews();
         chestView.openChest();
 
+        // 3. Start the card creation loop
         for (int i = 0; i < amount; i++) {
-            createWonCard();
+            createWonCard(i, amount);
         }
     }
 
     private void updateUI() {
         tvLootboxCount.setText("Lootboxes: " + lootboxCount);
 
-        // כפתור 1
+        // Enable buttons based on the current count
         btnOpen.setEnabled(lootboxCount >= 1);
         btnOpen.setAlpha(lootboxCount >= 1 ? 1.0f : 0.5f);
 
-        // כפתור 3
         btnOpen3.setEnabled(lootboxCount >= 3);
         btnOpen3.setAlpha(lootboxCount >= 3 ? 1.0f : 0.5f);
     }
 
-    private void createWonCard() {
-        new android.os.Handler().postDelayed(() -> {
+    private void createWonCard(int index, int totalAmount) {
+        // Slight delay before card appears (chest opening time)
+        new Handler().postDelayed(() -> {
             Card wonCard = dbHelper.getRandomCard();
             if (wonCard != null) {
                 dbHelper.addCardsToCollection(wonCard.getId(), 1);
                 View cardView = UIUtils.createViewCard(getLayoutInflater(), cardContainer, wonCard, this);
                 cardContainer.addView(cardView);
 
+                // Entrance Animation
                 cardView.setAlpha(0f);
                 cardView.animate().alpha(1f).setDuration(400).start();
 
-                new android.os.Handler().postDelayed(() -> {
+                // Wait 2 seconds while user looks at the card
+                new Handler().postDelayed(() -> {
                     chestView.closeChest();
-                    updateUI(); // החזרת הכפתורים למצב לחיץ/אפור לפי המלאי החדש
 
+                    // Exit Animation
                     if (cardView.getParent() != null) {
-                        cardView.animate().alpha(0f).setDuration(500)
-                                .withEndAction(() -> cardContainer.removeView(cardView)).start();
+                        cardView.animate()
+                                .alpha(0f)
+                                .setDuration(500)
+                                .withEndAction(() -> {
+                                    cardContainer.removeView(cardView);
+
+                                    // 4. ONLY re-enable buttons after the LAST card has vanished
+                                    if (index == totalAmount - 1) {
+                                        updateUI();
+                                    }
+                                }).start();
                     }
                 }, 2000);
             }
         }, 800);
     }
-
-
 }

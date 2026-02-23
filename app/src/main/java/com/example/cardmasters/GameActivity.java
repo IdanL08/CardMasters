@@ -230,7 +230,7 @@ public class GameActivity extends AppCompatActivity {
         if (turnSubmitted) return;
 
         PlayedTurnDTO turnDto = new PlayedTurnDTO(
-                UserPrefsUtils.getUsername(this),
+                UserPrefsUtils.getEmail(this),
                 currentTurnNumber,
                 new ArrayList<>(actionSequence)
         );
@@ -263,7 +263,7 @@ public class GameActivity extends AppCompatActivity {
             if (turnData == null) return;
 
             String sender = (String) turnData.get("playerId");
-            if (sender != null && sender.equals(UserPrefsUtils.getUsername(this))) return;
+            if (sender != null && sender.equals(UserPrefsUtils.getEmail(this))) return;
 
             try {
                 Object tNumObj = turnData.get("turnNumber");

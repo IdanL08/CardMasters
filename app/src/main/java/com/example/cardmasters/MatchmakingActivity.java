@@ -51,7 +51,7 @@ public class MatchmakingActivity extends AppCompatActivity implements FirebaseUt
     }
 
     private void startMatchmaking() {
-        String playerId = UserPrefsUtils.getUsername(this);
+        String playerId = UserPrefsUtils.getEmail(this);
         txtStatus.setText("Searching for opponent...");
         FirebaseUtils.searchForMatch(playerId, this);
     }
