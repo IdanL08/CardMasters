@@ -57,7 +57,7 @@ public class FirebaseUtils {
     // Called once when two players join a match.
     // Creates a match document with metadata.
     public static void createPendingMatch(
-            String player1Id,//TODO לשנות את הזיהוי משם לאימייל שתמיד ייחודי
+            String player1Id,
             OnSuccessListener<DocumentReference> onSuccess,
             OnFailureListener onFailure
     ) {

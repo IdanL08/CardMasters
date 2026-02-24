@@ -35,6 +35,7 @@ import com.example.cardmasters.utils.CardDatabaseHelper;
 import com.example.cardmasters.utils.FirebaseUtils;
 import com.example.cardmasters.utils.UIUtils;
 import com.example.cardmasters.utils.UserPrefsUtils;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 
 import java.util.ArrayList;
@@ -50,6 +51,8 @@ public class GameActivity extends AppCompatActivity {
     private TextView txtMatchId, txtOpponentHero, txtMyHero, txtMoney;
     private LinearLayout playerLaneContainer, enemyLaneContainer, handContainer;
     private Button btnSendTurn, btnBack;
+    private ListenerRegistration matchDeleteListener;
+
 
     // Game State
     private String matchId;
@@ -93,6 +96,7 @@ public class GameActivity extends AppCompatActivity {
         initGameState();
         setupDragAndDrop();
         startTurnListener();
+        startWatchingForLeavers();
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
@@ -281,20 +285,20 @@ public class GameActivity extends AppCompatActivity {
                 // Parsing Logic
                 List<Map<String, Object>> actionsMapList = (List<Map<String, Object>>) turnData.get("actions");
                 List<PlayedActionDTO> actionDtoList = new ArrayList<>();
-                Log.d(TAG, "parsing");
+
                 if (actionsMapList != null) {
-                    Log.d(TAG, "actionsMapList: "+actionsMapList);
+
                     for (Map<String, Object> actionMap : actionsMapList) {
-                        Log.d(TAG, "actionMap: "+actionMap);
+
                         PlayedActionDTO actionDto = new PlayedActionDTO();
                         actionDto.setLaneId((String) actionMap.get("laneId"));
                         Map<String, Object> cardMap = (Map<String, Object>) actionMap.get("card");
                         if (cardMap != null) {
-                            Log.d(TAG, "cardMap: "+cardMap);
+
                             CardDTO cardDto = new CardDTO();
                             cardDto.setCardId((String) cardMap.get("cardId"));
                             cardDto.setCardType((String) cardMap.get("type"));
-                            Log.d(TAG, "cardMap.get(\"type\"): "+cardMap.get("type"));
+
                             cardDto.setHp(((Number) cardMap.getOrDefault("hp", 0)).intValue());
                             cardDto.setAtk(((Number) cardMap.getOrDefault("atk", 0)).intValue());
                             actionDto.setCard(cardDto);
@@ -480,6 +484,13 @@ public class GameActivity extends AppCompatActivity {
             //("GAME OVER: " + result);
             btnSendTurn.setEnabled(false);
             Toast.makeText(this, result, Toast.LENGTH_LONG).show();
+            // Create a delay of 3000 milliseconds (3 seconds)
+            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    quitGame();
+                }
+            }, 3000);
         }
     }
 
@@ -490,14 +501,49 @@ public class GameActivity extends AppCompatActivity {
         FirebaseUtils.deleteMatch(matchId);
         Intent intent = new Intent(this, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        if (turnListener != null) turnListener.remove();
+        if (matchDeleteListener != null) matchDeleteListener.remove();
         startActivity(intent);
         finish();
     }
+
+
+    private void startWatchingForLeavers() {//(7)
+        if (matchId == null) return;
+
+        Log.d("MATCH_DEBUG", "GameActivity: Watching match: " + matchId);
+
+        matchDeleteListener = FirebaseFirestore.getInstance()
+                .collection("matches")
+                .document(matchId)
+                .addSnapshotListener((snapshot, e) -> {
+                    // If snapshot exists but then becomes null/false, the match was deleted
+                    if (snapshot != null && !snapshot.exists()) {
+                        Log.d("MATCH_DEBUG", "OPPONENT LEFT! Match deleted from DB.");
+
+                        // 1. Show the win message
+                        Toast.makeText(this, "Enemy player left, you win!", Toast.LENGTH_LONG).show();
+
+                        // 2. Stop listening (important to prevent loops)
+                        if (matchDeleteListener != null) matchDeleteListener.remove();
+                        btnSendTurn.setEnabled(false);
+                        btnBack.setEnabled(false);
+
+
+                        // 3. Wait 3 seconds then quit
+                        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                            quitGame();
+                        }, 3000);
+                    }
+                });
+    }
+
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         if (turnListener != null) turnListener.remove();
+        if (matchDeleteListener != null) matchDeleteListener.remove();
     }
 
     public int getMoney() {

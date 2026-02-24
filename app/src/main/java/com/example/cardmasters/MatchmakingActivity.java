@@ -72,14 +72,26 @@ public class MatchmakingActivity extends AppCompatActivity implements FirebaseUt
         listenForOpponent();
     }
 
+
+
     private void listenForOpponent() {
-        if (matchId == null) return;
+        if (matchId == null) {
+            Log.d("MATCH_DEBUG", "listenForOpponent: matchId is null, exiting.");
+            return;
+        }
+
+        Log.d("MATCH_DEBUG", "Starting listener for matchId: " + matchId);
 
         matchStatusListener = FirebaseUtils.listenForMatchStatus(matchId, new FirebaseUtils.OnMatchStatusChangeListener() {
             @Override
             public void onStatusChange(Map<String, Object> matchData) {
+                if (matchData == null) {
+                    Log.d("MATCH_DEBUG", "onStatusChange: matchData is null");
+                    return;
+                }
                 String status = (String) matchData.get("status");
-                // Switch to GameActivity if another player joins
+                Log.d("MATCH_DEBUG", "Status updated to: " + status);
+
                 if ("READY".equals(status) || "ACTIVE".equals(status)) {
                     launchGame();
                 }
@@ -87,15 +99,30 @@ public class MatchmakingActivity extends AppCompatActivity implements FirebaseUt
 
             @Override
             public void onMatchDeleted() {
-                Toast.makeText(MatchmakingActivity.this, "Match was closed.", Toast.LENGTH_SHORT).show();
-                handleExit();
+                Log.d("MATCH_DEBUG", "onMatchDeleted: THE MATCH WAS DELETED FROM FIRESTORE");
+                Toast.makeText(MatchmakingActivity.this, "Enemy player left, you win!", Toast.LENGTH_LONG).show();
+                handleDelayedExit();
             }
 
             @Override
             public void onError(Exception e) {
-                Log.e(TAG, "Firestore error: " + e.getMessage());
+                Log.e("MATCH_DEBUG", "Firestore error: " + e.getMessage());
             }
         });
+    }
+
+    private void handleDelayedExit() {
+        // 3. Stop listening immediately so we don't get multiple callbacks
+        if (matchStatusListener != null) {
+            matchStatusListener.remove();
+            matchStatusListener = null; // Prevent memory leaks/double calls
+        }
+
+        // 4. Wait 3 seconds then return to main menu
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+            // Use your existing navigation method
+            returnToMain();
+        }, 3000);
     }
 
     private void launchGame() {
