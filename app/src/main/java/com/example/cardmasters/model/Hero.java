@@ -16,4 +16,8 @@ public class Hero {
 
     public int getHealth() { return health; }
     public boolean isDefeated() { return health <= 0; }
+
+    public void setHealth(int health) {
+        this.health = health;
+    }
 }

@@ -8,6 +8,7 @@ import com.example.cardmasters.model.dto.PlayedTurnDTO;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.OnFailureListener;
+import com.google.firebase.Firebase;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.EmailAuthProvider;
 import com.google.firebase.auth.FirebaseAuth;
@@ -409,6 +410,24 @@ public class FirebaseUtils {
                 });
     }
 
+
+
+    public static void updatePlayerRating( long pointsDelta) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        FirebaseUser user= getCurrentUser();
+
+        if (user==null) return;
+        // Use FieldValue.increment to safely add or subtract
+        db.collection("users").document(user.getUid())
+                .update("rating", FieldValue.increment(pointsDelta))
+                .addOnSuccessListener(aVoid -> {
+                    Log.d("Firestore", "Rating updated by " + pointsDelta);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("Firestore", "Error updating rating", e);
+                });
+    }
 
     // -------------------------------------------------------------
     // ★ Re-authenticate + delete Firestore + delete Auth + clear prefs

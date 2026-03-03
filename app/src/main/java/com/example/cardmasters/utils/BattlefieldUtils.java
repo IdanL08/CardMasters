@@ -7,6 +7,7 @@ import java.util.List;
 
 public class BattlefieldUtils {
 
+    public static final int NUM_STARTING_CARDS = 4;
     private static final String TAG = "BattlefieldUtils";
     public static final int NUM_LANES = 5;
 

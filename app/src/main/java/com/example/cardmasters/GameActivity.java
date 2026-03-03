@@ -42,6 +42,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Random;
 
 public class GameActivity extends AppCompatActivity {
 
@@ -60,6 +61,7 @@ public class GameActivity extends AppCompatActivity {
     private Hero playerHero, enemyHero;
     private List<FighterCard> playerLanes, enemyLanes;
     private List<Card> playerHand;
+    private List<Card> playerDeck;
 
     // Turn Tracking & Synchronization
     private int currentTurnNumber = 1;
@@ -69,6 +71,7 @@ public class GameActivity extends AppCompatActivity {
     private final List<PlayedActionDTO> actionSequence = new ArrayList<>();
     private ListenerRegistration turnListener;
     private Card currentDraggingCard = null;
+    private Random rand = new Random(); // Create it once outside the loop
 
 
 
@@ -144,16 +147,49 @@ public class GameActivity extends AppCompatActivity {
     }
 
     private void loadPlayerHand() {
-        playerHand = cardDbHelper.getActiveDeck();
+        playerDeck = cardDbHelper.getActiveDeck();
+        playerHand = new ArrayList<>();
+
+
+
+
+        for (int i = 0; i < BattlefieldUtils.NUM_STARTING_CARDS; i++) {
+            // 1. Use .size() instead of .length
+            int randomIndex = rand.nextInt(playerDeck.size());
+
+            // 2. Use .get() instead of [index]
+            playerHand.add(playerDeck.get(randomIndex));
+        }
+
+
         handContainer.removeAllViews();
 
-        for (Card c : playerHand) {
+        for (Card c : playerHand) {//יישום UI
             // Inflate the complex layout instead of a simple ImageView
             View cardView = UIUtils.createViewCard(getLayoutInflater(),  handContainer,  c,   this);
             UIUtils.setDragDropListener(cardView,this,c);
 
             handContainer.addView(cardView);
         }
+    }
+
+    private void drawCardReloadUI(){
+        int randomIndex = rand.nextInt(playerDeck.size());
+
+        // 2. Use .get() instead of [index]
+        playerHand.add(playerDeck.get(randomIndex));
+
+
+
+        handContainer.removeAllViews();
+
+        for (Card c : playerHand) {//יישום UI
+        // Inflate the complex layout instead of a simple ImageView
+        View cardView = UIUtils.createViewCard(getLayoutInflater(),  handContainer,  c,   this);
+        UIUtils.setDragDropListener(cardView,this,c);
+
+        handContainer.addView(cardView);
+    }
     }
 
     private void setupDragAndDrop() {
@@ -331,11 +367,12 @@ public class GameActivity extends AppCompatActivity {
     private void processBattle(PlayedTurnDTO enemyTurn)/** (2)**/ {
         if (enemyTurn.getActions() == null || enemyTurn.getActions().isEmpty()) {
             finalizeBattle(); // No actions, go straight to math
-            return;
         }
-
-        List<PlayedActionDTO> actions = enemyTurn.getActions();
-        processActionStep(actions, 0);
+        else {
+            List<PlayedActionDTO> actions = enemyTurn.getActions();
+            processActionStep(actions, 0);
+        }
+        drawCardReloadUI();//קח קלף חדש
     }
 
     private void processActionStep(List<PlayedActionDTO> actions, int index) /** (2)**/{//פעולה רקורסיבית
@@ -480,10 +517,15 @@ public class GameActivity extends AppCompatActivity {
 
     private void checkWinCondition() {
         if (playerHero.getHealth() <= 0 || enemyHero.getHealth() <= 0) {
-            String result = (playerHero.getHealth() > 0) ? "VICTORY!" : "DEFEAT!";
+            boolean win =playerHero.getHealth() > enemyHero.getHealth();
+            long rating = (win) ? 100 : -100;
+            String result = (win) ? "VICTORY!" : "DEFEAT!";//אם שווים שניהם מפסידים
             //("GAME OVER: " + result);
             btnSendTurn.setEnabled(false);
             Toast.makeText(this, result, Toast.LENGTH_LONG).show();
+
+            FirebaseUtils.updatePlayerRating(rating);
+
             // Create a delay of 3000 milliseconds (3 seconds)
             new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(new Runnable() {
                 @Override
@@ -508,7 +550,7 @@ public class GameActivity extends AppCompatActivity {
     }
 
 
-    private void startWatchingForLeavers() {//(7)
+    private void startWatchingForLeavers() {// TODO לטפל בסיום משחק ומחיקתו (כנראה בסימון המשחק כגמור ומחיקתו רק לאחר חצי דקה)
         if (matchId == null) return;
 
         Log.d("MATCH_DEBUG", "GameActivity: Watching match: " + matchId);
@@ -528,7 +570,7 @@ public class GameActivity extends AppCompatActivity {
                         if (matchDeleteListener != null) matchDeleteListener.remove();
                         btnSendTurn.setEnabled(false);
                         btnBack.setEnabled(false);
-
+                        FirebaseUtils.updatePlayerRating(100);
 
                         // 3. Wait 3 seconds then quit
                         new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
