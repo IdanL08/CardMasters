@@ -15,15 +15,15 @@ public class BattlefieldUtils {
      * Settles the entire battlefield.
      * Requires the two Heroes to handle direct damage.
      */
-    public static void fieldBattle(List<FighterCard> playerLanes,
-                                   List<FighterCard> enemyLanes,
-                                   Hero playerHero,
-                                   Hero enemyHero) {
+    public static void fieldBattle(List<FighterCard> firstLanes,
+                                   List<FighterCard> secondLanes,
+                                   Hero firstHero,
+                                   Hero secondHero) {
 
         for (int i = 0; i < NUM_LANES; i++) {
-            laneBattle(i, playerLanes, enemyLanes, playerHero, enemyHero);
+            laneBattle(i, firstLanes, secondLanes, firstHero, secondHero);
         }
-        handleDeaths(playerLanes, enemyLanes);
+        handleDeaths(firstLanes, secondLanes);
     }
 
     private static void handleDeaths(List<FighterCard> playerLanes, List<FighterCard> enemyLanes) {
@@ -55,13 +55,13 @@ public class BattlefieldUtils {
      * Handles all possibilities for a single lane.
      */
     private static void laneBattle(int laneIndex,
-                                   List<FighterCard> pLanes,
-                                   List<FighterCard> eLanes,
-                                   Hero pHero,
-                                   Hero eHero) {
+                                   List<FighterCard> firstLanes,
+                                   List<FighterCard> secondLanes,
+                                   Hero firstHero,
+                                   Hero secondHero) {
 
-        FighterCard pCard = pLanes.get(laneIndex);
-        FighterCard eCard = eLanes.get(laneIndex);
+        FighterCard pCard = firstLanes.get(laneIndex);
+        FighterCard eCard = secondLanes.get(laneIndex);
 
         // CASE 1: Both lanes have cards (FIGHT!)
         if (pCard != null && eCard != null) {
@@ -76,15 +76,15 @@ public class BattlefieldUtils {
             applyAfterAttackEffects(eCard);
 
             // Clean up dead cards
-            if (pCard.isDead()) pLanes.set(laneIndex, null);
-            if (eCard.isDead()) eLanes.set(laneIndex, null);
+            if (pCard.isDead()) firstLanes.set(laneIndex, null);
+            if (eCard.isDead()) secondLanes.set(laneIndex, null);
         }
 
         // CASE 2: Player has a card, Enemy lane is empty (DIRECT ATTACK)
         else if (pCard != null) {
             int damage = pCard.getAtk();
             Log.d(TAG, pCard.getName() + " attacks Enemy Hero for " + damage);
-            eHero.takeDamage(damage);
+            secondHero.takeDamage(damage);
             applyAfterAttackEffects(pCard);
         }
 
@@ -92,7 +92,7 @@ public class BattlefieldUtils {
         else if (eCard != null) {
             int damage = eCard.getAtk();
             Log.d(TAG, eCard.getName() + " attacks Player Hero for " + damage);
-            pHero.takeDamage(damage);
+            firstHero.takeDamage(damage);
             applyAfterAttackEffects(eCard);
         }
 

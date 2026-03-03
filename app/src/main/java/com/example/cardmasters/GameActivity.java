@@ -73,6 +73,7 @@ public class GameActivity extends AppCompatActivity {
     private Card currentDraggingCard = null;
     private Random rand = new Random(); // Create it once outside the loop
 
+    private boolean isStartingPlayer;
 
 
     @Override
@@ -94,6 +95,9 @@ public class GameActivity extends AppCompatActivity {
             finish();
             return;
         }
+        // The second argument (false) is the default value if the key "IS_STARTING_PLAYER" isn't found
+        isStartingPlayer = getIntent().getBooleanExtra("IS_STARTING_PLAYER", false);
+
 
         initUI();
         initGameState();
@@ -158,7 +162,7 @@ public class GameActivity extends AppCompatActivity {
             int randomIndex = rand.nextInt(playerDeck.size());
 
             // 2. Use .get() instead of [index]
-            playerHand.add(playerDeck.get(randomIndex));
+            playerHand.add(playerDeck.get(randomIndex).cloneCard());
         }
 
 
@@ -177,7 +181,7 @@ public class GameActivity extends AppCompatActivity {
         int randomIndex = rand.nextInt(playerDeck.size());
 
         // 2. Use .get() instead of [index]
-        playerHand.add(playerDeck.get(randomIndex));
+        playerHand.add(playerDeck.get(randomIndex).cloneCard());
 
 
 
@@ -215,6 +219,7 @@ public class GameActivity extends AppCompatActivity {
 
                         if ( playerLanes.get(laneIdx) == null) {
                             playerLanes.set(laneIdx, fc);
+                            playerHand.remove(fc);
                             money-=fc.getCost();
                             txtMoney.setText("YOUR Money: "+String.valueOf(money));
                             CardDTO dto = new CardDTO(
@@ -461,7 +466,14 @@ public class GameActivity extends AppCompatActivity {
 
     private void finalizeBattle() {
         // Calculate the actual math results
-        BattlefieldUtils.fieldBattle(playerLanes, enemyLanes, playerHero, enemyHero);
+        if(isStartingPlayer) {
+            BattlefieldUtils.fieldBattle(playerLanes, enemyLanes, playerHero, enemyHero);
+        }
+        else{
+            BattlefieldUtils.fieldBattle(enemyLanes, playerLanes, enemyHero, playerHero);
+        }
+
+
 
         runOnUiThread(() -> {
             refreshLaneUI();

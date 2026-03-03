@@ -4,6 +4,7 @@ import android.content.Context;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.example.cardmasters.GameActivity;
 import com.example.cardmasters.model.dto.PlayedTurnDTO;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -27,6 +28,7 @@ import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 import java.util.function.Consumer;
 
 public class FirebaseUtils {
@@ -67,7 +69,7 @@ public class FirebaseUtils {
         matchData.put("player2Id", null);           // Player 2 is unknown/pending
         matchData.put("status", "PENDING");         // New Status Field
         matchData.put("turnNumber", 0);
-        matchData.put("currentPlayer", player1Id);
+        matchData.put("startingPlayer", null);
         matchData.put("winnerId", null);
         matchData.put("createdAt", System.currentTimeMillis());
         matchData.put("lastUpdated", System.currentTimeMillis());
@@ -140,10 +142,17 @@ public class FirebaseUtils {
                     && matchSnapshot.getString("player2Id") == null
                     && "PENDING".equals(matchSnapshot.getString("status"))) {
 
+                // 1. Get the ID of the person who created the match
+                String player1Id = matchSnapshot.getString("player1Id");
+
+                // 2. Decide the starting player randomly
+                String startingPlayerId = new Random().nextBoolean() ? player1Id : joiningPlayerId;
                 // It's available! Claim the spot.
                 transaction.update(matchRef, "player2Id", joiningPlayerId);
                 transaction.update(matchRef, "status", "READY");
                 transaction.update(matchRef, "lastUpdated", System.currentTimeMillis());
+                transaction.update(matchRef, "startingPlayer", startingPlayerId); // New Field
+
 
                 // Return the match ID on success
                 return matchRef.getId();
@@ -184,6 +193,33 @@ public class FirebaseUtils {
         void onFailure(Exception e);
     }
 
+    public static void checkIfIStart(OnStartingPlayerResult callback,String matchId) {
+
+
+        if (matchId == null || matchId.isEmpty()) {
+            Log.e(TAG, "checkIfIStart: matchId is null! Cannot check starter.");
+            return;
+        }
+
+        // 2. Get your email from Auth (Zero arguments)
+        String myEmail = auth.getCurrentUser() != null ? auth.getCurrentUser().getEmail() : null;
+
+        // 3. Hit the database
+        getMatchDocument(matchId).get().addOnSuccessListener(snapshot -> {
+            if (snapshot.exists()) {
+                String starter = snapshot.getString("startingPlayer");
+
+                // 4. Compare and return the result through the listener
+                boolean amIStarter = myEmail != null && myEmail.equals(starter);
+                callback.onResult(amIStarter);
+            } else {
+                Log.e(TAG, "Match document does not exist.");
+            }
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "Failed to fetch match for starter check", e);
+        });
+    }
+
     public static void finishMatch(String matchId, String winnerId, OnSuccessListener<Void> onSuccess, OnFailureListener onFailure) {
         Map<String, Object> updates = new HashMap<>();
         updates.put("status", "COMPLETED");
@@ -195,6 +231,14 @@ public class FirebaseUtils {
                 .addOnSuccessListener(onSuccess)
                 .addOnFailureListener(onFailure);
     }
+
+
+
+    // Simple interface for the result
+    public interface OnStartingPlayerResult {
+        void onResult(boolean isStartingPlayer);
+    }
+
 
     public static void deleteMatch(String matchId, OnSuccessListener<Void> onSuccess, OnFailureListener onFailure) {
         getMatchesCollection().document(matchId)

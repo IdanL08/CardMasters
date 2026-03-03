@@ -129,8 +129,13 @@ public class MatchmakingActivity extends AppCompatActivity implements FirebaseUt
         isTransitioning = true;
         if (matchStatusListener != null) matchStatusListener.remove();
 
+
         Intent intent = new Intent(this, GameActivity.class);
         intent.putExtra("MATCH_ID", matchId);
+        FirebaseUtils.checkIfIStart(isStarter -> {
+            intent.putExtra("IS_STARTING_PLAYER", isStarter);
+        },matchId);
+
         startActivity(intent);
         finish();
     }
