@@ -54,15 +54,31 @@ public class CardDatabaseHelper extends SQLiteOpenHelper {
         db.execSQL("DELETE FROM cards_library");
 
         // Fighter Cards
-        insertFighter(db, "fishboy", "Fish Boy", 1, 12, 4);
-        insertFighter(db, "nepton", "Nepton", 5, 20, 6);
-        insertFighter(db, "sponge", "Sponge", 2, 8, 2);
-        insertFighter(db, "gambler", "Gambler", 4, 15, 5);
-        insertFighter(db, "ghoul_cowboy", "Ghoul Cowboy", 4, 18, 5);
-        insertFighter(db, "robo_cowboy", "Robo Cowboy", 4, 16, 6);
+        insertFighter(db, "arcade", "arcade", 1, 2, 1);//אולי לקחית קלף
+        insertFighter(db, "boomer", "boomer", 3, 3, 6);
+        insertFighter(db, "caesar", "caesar", 4, 8, 5);
+        insertFighter(db, "centurion", "centurion", 4, 10, 10);
+        insertFighter(db, "deathclaw", "deathclaw", 6, 20, 12);
+        insertFighter(db, "ghoul", "ghoul", 1, 1, 3);
+        insertFighter(db, "khan", "khan", 1, 2, 2);
+        insertFighter(db, "legate", "legate", 5, 10, 14);
+        insertFighter(db, "mr_house", "mr_house", 3, 10, 3);//אולי יכולת פסיבית
+        insertFighter(db, "ncr_ranger", "ncr_ranger", 2, 5, 6);
+        insertFighter(db, "nightkin", "nightkin", 4, 14, 5);
+        insertFighter(db, "raul", "raul", 2, 4, 7);
+        insertFighter(db, "super_mutant", "super_mutant", 4, 9, 6);
+        insertFighter(db, "veronica", "veronica", 2, 6, 4);
+        insertFighter(db, "vulpes", "vulpes", 3, 8, 9);
+        insertFighter(db, "yesman", "yesman", 2, 10, 2);
+
 
         // Effect Cards (Stored in the same table)
-        insertEffectCard(db, "emp", "EMP", 3, Effect.Target.ATK, Effect.Type.ADD, 3);
+        insertEffectCard(db, "nuka_cola", "nuka_cola", 2, Effect.Target.HP, Effect.Type.ADD, 5);
+        insertEffectCard(db, "platinum_chip", "platinum_chip", 3, Effect.Target.ATK, Effect.Type.ADD, 3);//להחליף לבונוס התקפה
+        insertEffectCard(db, "radioactive_can", "radioactive_can", 3, Effect.Target.ATK, Effect.Type.ADD, -3);//להחליף להורדת התקפה על היריב
+        insertEffectCard(db, "slot_machine", "slot_machine", 3, Effect.Target.ATK, Effect.Type.ADD, 3);//להחליף ללקיחת שני קלפים
+        insertEffectCard(db, "sunsets", "sunsets", 2, Effect.Target.ATK, Effect.Type.ADD, 5);
+        insertEffectCard(db, "bomber_boomer", "bomber_boomer", 3, Effect.Target.HP, Effect.Type.ADD, -3);//להחליף לדמג על היריב
     }
 
     private void insertFighter(SQLiteDatabase db, String id, String name, int cost, int hp, int atk) {
