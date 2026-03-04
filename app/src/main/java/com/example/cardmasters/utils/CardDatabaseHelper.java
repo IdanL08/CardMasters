@@ -76,6 +76,8 @@ public class CardDatabaseHelper extends SQLiteOpenHelper {
         db.insert("cards_library", null, values);
     }
 
+
+
     private void insertEffectCard(SQLiteDatabase db, String id, String name, int cost, Effect.Target target, Effect.Type type, int value) {
         ContentValues values = new ContentValues();
         values.put("id", id);
@@ -87,44 +89,47 @@ public class CardDatabaseHelper extends SQLiteOpenHelper {
         values.put("effect_value", value);
         db.insert("cards_library", null, values);
     }
-    public Card getCardById(String cardId){
+    public Card getCardById(String cardId) {
         SQLiteDatabase db = this.getReadableDatabase();
-        String query = "SELECT * FROM cards_library WHERE id==cardId";
-        Cursor cursor = db.rawQuery(query, null);
-        Card card=null;
+        Card card = null;
+        String query = "SELECT * FROM cards_library WHERE id = ?";
+        Cursor cursor = db.rawQuery(query, new String[]{cardId});
 
-        if (cursor.moveToFirst()) {
-
+        try {
+            if (cursor != null && cursor.moveToFirst()) {
                 String cardClass = cursor.getString(cursor.getColumnIndexOrThrow("card_class"));
                 String id = cursor.getString(cursor.getColumnIndexOrThrow("id"));
                 String name = cursor.getString(cursor.getColumnIndexOrThrow("name"));
                 int cost = cursor.getInt(cursor.getColumnIndexOrThrow("cost"));
-                int inUseQty = cursor.getInt(cursor.getColumnIndexOrThrow("in_use_quantity"));
 
-                if (inUseQty > 0) {
+                // הסרנו את התנאי: if (inUseQty > 0)
 
-                    if ("FIGHTER".equals(cardClass)) {
-                        int hp = cursor.getInt(cursor.getColumnIndexOrThrow("hp"));
-                        int atk = cursor.getInt(cursor.getColumnIndexOrThrow("atk"));
-                        card = new FighterCard(id, name, cost, hp, atk);
-                    } else {
-                        String targetStr = cursor.getString(cursor.getColumnIndexOrThrow("effect_target"));
-                        String typeStr = cursor.getString(cursor.getColumnIndexOrThrow("effect_type"));
-                        int val = cursor.getInt(cursor.getColumnIndexOrThrow("effect_value"));
-                        Effect effect = new Effect(Effect.Target.valueOf(targetStr), Effect.Type.valueOf(typeStr), val);
-                        card = new EffectCard(id, name, cost, effect);
-                    }
+                if ("FIGHTER".equals(cardClass)) {
+                    int hp = cursor.getInt(cursor.getColumnIndexOrThrow("hp"));
+                    int atk = cursor.getInt(cursor.getColumnIndexOrThrow("atk"));
+                    card = new FighterCard(id, name, cost, hp, atk);
+                } else {
+                    String targetStr = cursor.getString(cursor.getColumnIndexOrThrow("effect_target"));
+                    String typeStr = cursor.getString(cursor.getColumnIndexOrThrow("effect_type"));
+                    int val = cursor.getInt(cursor.getColumnIndexOrThrow("effect_value"));
 
+                    Effect effect = new Effect(
+                            Effect.Target.valueOf(targetStr),
+                            Effect.Type.valueOf(typeStr),
+                            val
+                    );
+                    card = new EffectCard(id, name, cost, effect);
                 }
-
-    }
+            }
+        } finally {
+            if (cursor != null) cursor.close();
+        }
         return card;
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         db.execSQL("DROP TABLE IF EXISTS cards_library");
-        db.execSQL("DROP TABLE IF EXISTS card_effects"); // Clean up old table if exists
         db.execSQL("DROP TABLE IF EXISTS collection");
         onCreate(db);
     }

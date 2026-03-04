@@ -6,6 +6,7 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowInsets;
@@ -17,6 +18,7 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.cardmasters.model.Effect;
 import com.example.cardmasters.model.cards.Card;
 import com.example.cardmasters.model.cards.EffectCard;
 import com.example.cardmasters.model.cards.FighterCard;
@@ -127,7 +129,10 @@ public class CollectionActivity extends AppCompatActivity {
                         "cards_library.cost, " +
                         "cards_library.hp, " +
                         "cards_library.atk, " +
-                        "cards_library.card_class " +
+                        "cards_library.card_class, " +
+                        "cards_library.effect_target, "+
+                        "cards_library.effect_type, "+
+                        "cards_library.effect_value "+
                         "FROM cards_library " +
                         "INNER JOIN collection ON cards_library.id = collection.id",
                 null
@@ -143,12 +148,28 @@ public class CollectionActivity extends AppCompatActivity {
             int hp = cursor.getInt(5);
             int atk = cursor.getInt(6);
             String card_class = cursor.getString(7);
+            String effect_target = cursor.getString(8);
+            String effect_type = cursor.getString(9);
+            int effect_value = cursor.getInt(10);
             if(Objects.equals(card_class, "FIGHTER"))
                 {
                     c=new FighterCard( id,  name,  cost,  hp,  atk);
                 }
             else if(Objects.equals(card_class, "EFFECT")){
-                c= new EffectCard(id,name, cost);
+                try {
+                    // המרת המחרוזות ל-Enums של המחלקה Effect
+                    Effect.Target target = Effect.Target.valueOf(effect_target);
+                    Effect.Type type = Effect.Type.valueOf(effect_type);
+
+                    // יצירת אובייקט ה-Effect וה-Card
+                    Effect effect = new Effect(target, type, effect_value);
+                    c = new EffectCard(id, name, cost, effect);
+                } catch (IllegalArgumentException | NullPointerException e) {
+                    // הגנה למקרה שבמסד הנתונים יש ערך שלא תואם ל-Enum (למשל שגיאת כתיב)
+                    Log.e("CollectionActivity", "Error parsing effect enums for card: " + id);
+                    // אפשר ליצור אובייקט ברירת מחדל כדי שהאפליקציה לא תקרוס
+                    c = new EffectCard(id, name, cost, new Effect(Effect.Target.HP, Effect.Type.ADD, 0));
+                }
             }
 
 

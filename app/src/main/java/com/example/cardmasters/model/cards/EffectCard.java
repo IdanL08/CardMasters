@@ -30,7 +30,7 @@ public class EffectCard extends Card {
     }
 
     public Effect getEffectById(){
-        //TODO ליישם getcardbyid return
+
         return new Effect(Effect.Target.ATK, Effect.Type.ADD, 3);
         }
 

@@ -403,7 +403,8 @@ public class GameActivity extends AppCompatActivity {
             // Trigger the fancy animation
             showEffectAnimation(c, lane, () -> {
                 // This callback runs AFTER the animation finishes
-                EffectCard ec = new EffectCard(c.getCardId());
+                CardDatabaseHelper dbHelper = new CardDatabaseHelper(this);
+                EffectCard ec = (EffectCard)dbHelper.getCardById(c.getCardId());
                 ec.applyEffect(enemyLanes.get(lane));
                 refreshLaneUI();
                 processActionStep(actions, index + 1);
