@@ -11,7 +11,7 @@ public class Hero {
 
     public void takeDamage(int amount) {
         this.health -= amount;
-        if (this.health < 0) this.health = 0;
+
     }
 
     public int getHealth() { return health; }
