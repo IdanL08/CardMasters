@@ -1,10 +1,8 @@
 package com.example.cardmasters.model.cards;
 
 import com.example.cardmasters.model.Effect;
-
 import java.util.ArrayList;
 import java.util.List;
-
 
 public class FighterCard extends Card {
     private int hp;
@@ -14,30 +12,35 @@ public class FighterCard extends Card {
 
     public FighterCard() { super(); }
 
-
-
     public FighterCard(String id, String name, int cost, int hp, int atk) {
         super(id, name, cost);
         this.hp = hp;
         this.atk = atk;
     }
 
+    public FighterCard(String id, String name, int hp, int atk, List<Effect> activeEffects) {
+        super(id, name);
+        this.hp = hp;
+        this.atk = atk;
+        this.activeEffects = activeEffects != null ? activeEffects : new ArrayList<>();
+    }
+
+    public FighterCard(String id, String name, int cost, int hp, List<Effect> activeEffects, int currentDamage, int atk) {
+        super(id, name, cost);
+        this.hp = hp;
+        this.activeEffects = activeEffects != null ? activeEffects : new ArrayList<>();
+        this.currentDamage = currentDamage;
+        this.atk = atk;
+    }
+
     // --- LOGIC METHODS ---
 
     public int getAtk() {
-        int atk = this.atk;
-        for (Effect e : activeEffects) {
-            if (e.getTarget() == Effect.Target.ATK) atk = e.apply(atk);
-        }
-        return atk;
+        return this.atk; // מחזיר ישירות בלי חישובים באוויר
     }
 
     public int getHp() {
-        int hp = this.hp;
-        for (Effect e : activeEffects) {
-            if (e.getTarget() == Effect.Target.HP) hp = e.apply(hp);
-        }
-        return hp - currentDamage;
+        return this.hp - currentDamage; // מחזיר ישירות
     }
 
     public void takeDamage(int amount) {
@@ -49,26 +52,21 @@ public class FighterCard extends Card {
     }
 
     public void onDeath(){
-        //apply on death effect
+        // apply on death effect
     }
 
+    /**
+     * פונקציה קריטית: אם האפקט הוא כוח או חיים - הוא משנה את הסטאטים מיד.
+     * אם זה התקפה נוספת או שליפת קלף - הוא נשמר ברשימה לשימוש עתידי.
+     */
     public void addEffect(Effect effect) {
-        activeEffects.add(effect);
-    }
-
-    public FighterCard(String id, String name, int hp, int atk, List<Effect> activeEffects) {
-        super(id, name);
-        this.hp = hp;
-        this.atk = atk;
-        this.activeEffects = activeEffects;
-    }
-
-    public FighterCard(String id, String name, int cost, int hp, List<Effect> activeEffects, int currentDamage, int atk) {
-        super(id, name, cost);
-        this.hp = hp;
-        this.activeEffects = activeEffects;
-        this.currentDamage = currentDamage;
-        this.atk = atk;
+        if (effect.getTarget() == Effect.Target.ATK) {
+            this.atk = effect.apply(this.atk);
+        } else if (effect.getTarget() == Effect.Target.HP) {
+            this.hp = effect.apply(this.hp);
+        } else {
+            activeEffects.add(effect);
+        }
     }
 
     @Override
@@ -82,7 +80,7 @@ public class FighterCard extends Card {
         return clone;
     }
 
-
-
-    public List<Effect> getActiveEffects() { return activeEffects; }
+    public List<Effect> getActiveEffects() {
+        return activeEffects;
+    }
 }

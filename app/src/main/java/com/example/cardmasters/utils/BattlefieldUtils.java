@@ -1,20 +1,20 @@
 package com.example.cardmasters.utils;
 
-import com.example.cardmasters.model.cards.FighterCard;
-import com.example.cardmasters.model.Hero;
 import android.util.Log;
+import com.example.cardmasters.model.Effect;
+import com.example.cardmasters.model.Hero;
+import com.example.cardmasters.model.cards.FighterCard;
+// אל תשכח לייבא את המחלקות של Hero ושאר הדברים שלך
+
+import java.util.Iterator;
 import java.util.List;
 
-public class BattlefieldUtils {
+public class BattlefieldUtils {//(8)
 
     public static final int NUM_STARTING_CARDS = 4;
     private static final String TAG = "BattlefieldUtils";
     public static final int NUM_LANES = 5;
 
-    /**
-     * Settles the entire battlefield.
-     * Requires the two Heroes to handle direct damage.
-     */
     public static void fieldBattle(List<FighterCard> firstLanes,
                                    List<FighterCard> secondLanes,
                                    Hero firstHero,
@@ -26,82 +26,134 @@ public class BattlefieldUtils {
         handleDeaths(firstLanes, secondLanes);
     }
 
-    private static void handleDeaths(List<FighterCard> playerLanes, List<FighterCard> enemyLanes) {
+    private static void handleDeaths(List<FighterCard> firstLanes, List<FighterCard> secondLanes) {
         for (int i = 0; i < NUM_LANES; i++) {
-
-            if (enemyLanes.get(i) != null && enemyLanes.get(i).isDead()&&playerLanes.get(i) != null && playerLanes.get(i).isDead()){
-                playerLanes.get(i).onDeath();
-                enemyLanes.get(i).onDeath();
-                playerLanes.set(i, null);
-                enemyLanes.set(i, null);
-                handleDeaths(playerLanes, enemyLanes);
+            if (firstLanes.get(i) != null && firstLanes.get(i).isDead()) {
+                firstLanes.get(i).onDeath();
+                firstLanes.set(i, null);
             }
-
-            // Handle Player Deaths
-            if (playerLanes.get(i) != null && playerLanes.get(i).isDead()) {
-                playerLanes.get(i).onDeath();
-                playerLanes.set(i, null);
-            }
-
-            // Handle Enemy Deaths
-            if (enemyLanes.get(i) != null && enemyLanes.get(i).isDead()) {
-                enemyLanes.get(i).onDeath();
-                enemyLanes.set(i, null);
+            if (secondLanes.get(i) != null && secondLanes.get(i).isDead()) {
+                secondLanes.get(i).onDeath();
+                secondLanes.set(i, null);
             }
         }
     }
 
     /**
-     * Handles all possibilities for a single lane.
+     * פונקציה שסופרת התקפות בונוס ו"שורפת" אותן (מוחקת מהרשימה)
      */
+    private static int consumeBonusAttacks(FighterCard card) {
+        if (card == null || card.getActiveEffects() == null) return 0;
+
+        int bonusCount = 0;
+        Iterator<Effect> iterator = card.getActiveEffects().iterator();
+
+        while (iterator.hasNext()) {
+            Effect e = iterator.next();
+            if (e.getTarget() == Effect.Target.BONUS_ATK) {
+                bonusCount = e.apply(bonusCount);
+                iterator.remove(); // מוחק את האפקט מיד כדי שלא יחזור תור הבא
+            }
+        }
+        return bonusCount;
+    }
+
+    /**
+     * פונקציה שבודקת האם הקלף צריך לשלוף קלפים אחרי התקפה (PvZ Heroes style)
+     */
+    private static void handleOnAttackEffects(FighterCard attacker, Hero attackerHero) {
+        if (attacker == null || attacker.isDead() || attacker.getActiveEffects() == null) return;
+
+        for (Effect e : attacker.getActiveEffects()) {
+            if (e.getTarget() == Effect.Target.DRAW_CARD) {
+                int cardsToDraw = e.apply(0); // מחשב כמה קלפים לשלוף לפי ה-value של האפקט
+                Log.d(TAG, attacker.getName() + " draws " + cardsToDraw + " cards!");
+                // כאן תקרא לפונקציה של הגיבור/שחקן ששולפת קלפים:
+                // attackerHero.drawCards(cardsToDraw);
+            }
+        }
+    }
+
+    /**
+     * מבצע את סדרת התקפות הבונוס של קלף מסוים.
+     */
+    private static void performBonusAttacks(FighterCard attacker, FighterCard defender, Hero defendingHero, Hero attackingHero) {
+        if (attacker == null || attacker.isDead()) return;
+
+        int bonusCount = consumeBonusAttacks(attacker);
+
+        for (int i = 0; i < bonusCount; i++) {
+            if (attacker.isDead()) break;
+
+            int dmg = attacker.getAtk();
+
+            if (defender != null && !defender.isDead()) {
+                Log.d(TAG, attacker.getName() + " BONUS ATTACKS " + defender.getName() + " for " + dmg);
+                defender.takeDamage(dmg);
+            } else {
+                Log.d(TAG, attacker.getName() + " BONUS ATTACKS Hero for " + dmg);
+                defendingHero.takeDamage(dmg);
+            }
+
+            // קורא לאפקטים שקורים אחרי כל מכה (כמו שליפת קלף)
+            handleOnAttackEffects(attacker, attackingHero);
+        }
+    }
+
     private static void laneBattle(int laneIndex,
                                    List<FighterCard> firstLanes,
                                    List<FighterCard> secondLanes,
                                    Hero firstHero,
                                    Hero secondHero) {
 
-        FighterCard pCard = firstLanes.get(laneIndex);
-        FighterCard eCard = secondLanes.get(laneIndex);
+        FighterCard firstCard = firstLanes.get(laneIndex);
+        FighterCard secondCard = secondLanes.get(laneIndex);
 
-        // CASE 1: Both lanes have cards (FIGHT!)
-        if (pCard != null && eCard != null) {
-            int pAtk = pCard.getAtk();
-            int eAtk = eCard.getAtk();
+        // ==========================================
+        // שלב 1: התקפות בונוס (לפני הקרב הרגיל)
+        // ==========================================
 
-            pCard.takeDamage(eAtk);
-            eCard.takeDamage(pAtk);
+        performBonusAttacks(firstCard, secondCard, secondHero, firstHero);
+        performBonusAttacks(secondCard, firstCard, firstHero, secondHero);
 
-            // Post-combat effects (as we planned before)
-            applyAfterAttackEffects(pCard);
-            applyAfterAttackEffects(eCard);
-
-            // Clean up dead cards
-            if (pCard.isDead()) firstLanes.set(laneIndex, null);
-            if (eCard.isDead()) secondLanes.set(laneIndex, null);
+        // מעדכנים את הלוח במקרה שמישהו מת מהתקפות הבונוס
+        if (firstCard != null && firstCard.isDead()) {
+            firstCard.onDeath();
+            firstLanes.set(laneIndex, null);
+            firstCard = null;
+        }
+        if (secondCard != null && secondCard.isDead()) {
+            secondCard.onDeath();
+            secondLanes.set(laneIndex, null);
+            secondCard = null;
         }
 
-        // CASE 2: Player has a card, Enemy lane is empty (DIRECT ATTACK)
-        else if (pCard != null) {
-            int damage = pCard.getAtk();
-            Log.d(TAG, pCard.getName() + " attacks Enemy Hero for " + damage);
+        // ==========================================
+        // שלב 2: הקרב הרגיל והסימולטני
+        // ==========================================
+
+        if (firstCard != null && secondCard != null) {
+            int pAtk = firstCard.getAtk();
+            int eAtk = secondCard.getAtk();
+
+            firstCard.takeDamage(eAtk);
+            secondCard.takeDamage(pAtk);
+
+            // הפעלת אפקטים שאחרי התקפה רגילה
+            handleOnAttackEffects(firstCard, firstHero);
+            handleOnAttackEffects(secondCard, secondHero);
+
+        } else if (firstCard != null) {
+            int damage = firstCard.getAtk();
+            Log.d(TAG, firstCard.getName() + " attacks Enemy Hero for " + damage);
             secondHero.takeDamage(damage);
-            applyAfterAttackEffects(pCard);
-        }
+            handleOnAttackEffects(firstCard, firstHero);
 
-        // CASE 3: Enemy has a card, Player lane is empty (DIRECT ATTACK)
-        else if (eCard != null) {
-            int damage = eCard.getAtk();
-            Log.d(TAG, eCard.getName() + " attacks Player Hero for " + damage);
+        } else if (secondCard != null) {
+            int damage = secondCard.getAtk();
+            Log.d(TAG, secondCard.getName() + " attacks Player Hero for " + damage);
             firstHero.takeDamage(damage);
-            applyAfterAttackEffects(eCard);
+            handleOnAttackEffects(secondCard, secondHero);
         }
-
-        // CASE 4: Both are null (Do nothing)
-    }
-
-    private static void applyAfterAttackEffects(FighterCard card) {
-        if (card == null || card.isDead()) return;
-        // Logic for "After Attack" effects here...
-        Log.d(TAG, "Triggering effects for survivor: " + card.getName());
     }
 }

@@ -74,9 +74,9 @@ public class CardDatabaseHelper extends SQLiteOpenHelper {
 
         // Effect Cards (Stored in the same table)
         insertEffectCard(db, "nuka_cola", "nuka_cola", 2, Effect.Target.HP, Effect.Type.ADD, 5);
-        insertEffectCard(db, "platinum_chip", "platinum_chip", 3, Effect.Target.ATK, Effect.Type.ADD, 3);//להחליף לבונוס התקפה
+        insertEffectCard(db, "platinum_chip", "platinum_chip", 3, Effect.Target.BONUS_ATK, Effect.Type.ADD, 1);
         insertEffectCard(db, "radioactive_can", "radioactive_can", 3, Effect.Target.ATK, Effect.Type.ADD, -3);//להחליף להורדת התקפה על היריב
-        insertEffectCard(db, "slot_machine", "slot_machine", 3, Effect.Target.ATK, Effect.Type.ADD, 3);//להחליף ללקיחת שני קלפים
+        insertEffectCard(db, "slot_machine", "slot_machine", 3, Effect.Target.DRAW_CARD, Effect.Type.ADD, 1);//להחליף ללקיחת שני קלפים
         insertEffectCard(db, "sunsets", "sunsets", 2, Effect.Target.ATK, Effect.Type.ADD, 5);
         insertEffectCard(db, "bomber_boomer", "bomber_boomer", 3, Effect.Target.HP, Effect.Type.ADD, -3);//להחליף לדמג על היריב
     }
