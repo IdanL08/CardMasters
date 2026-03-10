@@ -2,6 +2,8 @@ package com.example.cardmasters;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
@@ -15,6 +17,7 @@ import com.example.cardmasters.utils.UserPrefsUtils;
 import com.google.firebase.firestore.ListenerRegistration;
 
 import java.util.Map;
+import java.util.Random;
 
 public class MatchmakingActivity extends AppCompatActivity implements FirebaseUtils.MatchmakingListener {
 
@@ -27,6 +30,10 @@ public class MatchmakingActivity extends AppCompatActivity implements FirebaseUt
     private Button btnCancel;
     private ListenerRegistration matchStatusListener;
 
+    // --- מנגנון ה-Retry לחילוץ מחדרים ריקים ---
+    private Handler retryHandler = new Handler(Looper.getMainLooper()); // TODO לרשום כהרחבה בתיק פרוייקט
+    private Runnable retryRunnable;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -36,7 +43,6 @@ public class MatchmakingActivity extends AppCompatActivity implements FirebaseUt
         txtMatchId = findViewById(R.id.txtMatchId);
         btnCancel = findViewById(R.id.btnCancel);
 
-        // --- ANDROIDX BACK NAVIGATION DISPATCHER ---
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
@@ -46,7 +52,6 @@ public class MatchmakingActivity extends AppCompatActivity implements FirebaseUt
 
         btnCancel.setOnClickListener(v -> handleExit());
 
-        // Auto-start matchmaking
         startMatchmaking();
     }
 
@@ -58,6 +63,9 @@ public class MatchmakingActivity extends AppCompatActivity implements FirebaseUt
 
     @Override
     public void onMatchFound(String matchId) {
+        // מצאנו משחק! נוודא שאין איזה טיימר מחיקה שרץ ברקע
+        cancelRetryTimer();
+
         this.matchId = matchId;
         txtMatchId.setText("Match ID: " + matchId);
         txtStatus.setText("Connecting...");
@@ -70,9 +78,35 @@ public class MatchmakingActivity extends AppCompatActivity implements FirebaseUt
         txtMatchId.setText("Match ID: " + matchId);
         txtStatus.setText("Waiting for opponent...");
         listenForOpponent();
+
+        // --- הוספת Jitter: מתחילים טיימר אקראי בין 4 ל-8 שניות ---
+        int randomDelay = 4000 + new Random().nextInt(4000);
+
+        retryRunnable = () -> {
+            Log.d(TAG, "No one joined after " + (randomDelay/1000) + "s. Verifying and retrying...");
+
+            // מסירים את ההאזנה לפני המחיקה כדי שלא נקפיץ לעצמנו את onMatchDeleted
+            if (matchStatusListener != null) matchStatusListener.remove();
+
+            // שימוש במחיקה החכמה החדשה שלנו!
+            FirebaseUtils.abortPendingMatchSafely(this.matchId,
+                    () -> {
+                        // הסטטוס היה PENDING והחדר נמחק, אז נחפש מחדש
+                        this.matchId = null;
+                        startMatchmaking();
+                    },
+                    () -> {
+                        // אם זה הופעל, סימן שמישהו בדיוק נכנס והסטטוס השתנה ל-READY!
+                        // אנחנו מבטלים את המחיקה ומפעילים מחדש את ההאזנה לסטטוס כדי שניכנס למשחק.
+                        Log.d(TAG, "Match was claimed just in time! Aborting delete.");
+                        listenForOpponent();
+                    }
+            );
+        };
+
+        // הנה שורת הקסם שהייתה חסרה! זה מה שבאמת מפעיל את הטיימר:
+        retryHandler.postDelayed(retryRunnable, randomDelay);
     }
-
-
 
     private void listenForOpponent() {
         if (matchId == null) {
@@ -85,23 +119,28 @@ public class MatchmakingActivity extends AppCompatActivity implements FirebaseUt
         matchStatusListener = FirebaseUtils.listenForMatchStatus(matchId, new FirebaseUtils.OnMatchStatusChangeListener() {
             @Override
             public void onStatusChange(Map<String, Object> matchData) {
-                if (matchData == null) {
-                    Log.d("MATCH_DEBUG", "onStatusChange: matchData is null");
-                    return;
-                }
+                if (matchData == null) return;
+
                 String status = (String) matchData.get("status");
                 Log.d("MATCH_DEBUG", "Status updated to: " + status);
 
                 if ("READY".equals(status) || "ACTIVE".equals(status)) {
+                    // מישהו נכנס! מבטלים מיד את טיימר ההשמדה העצמית
+                    cancelRetryTimer();
                     launchGame();
                 }
             }
 
             @Override
             public void onMatchDeleted() {
+                // בגלל שאנחנו מסירים את ההאזנה לפני המחיקה היזומה שלנו,
+                // הפונקציה הזו תיקרא רק אם *מישהו אחר* מחק את המשחק (למשל ברח או שהייתה שגיאה)
                 Log.d("MATCH_DEBUG", "onMatchDeleted: THE MATCH WAS DELETED FROM FIRESTORE");
-                Toast.makeText(MatchmakingActivity.this, "Enemy player left, you win!", Toast.LENGTH_LONG).show();
-                handleDelayedExit();
+
+                if (matchId != null) {
+                    Toast.makeText(MatchmakingActivity.this, "Enemy player left or match cancelled.", Toast.LENGTH_LONG).show();
+                    handleDelayedExit();
+                }
             }
 
             @Override
@@ -111,27 +150,28 @@ public class MatchmakingActivity extends AppCompatActivity implements FirebaseUt
         });
     }
 
+    private void cancelRetryTimer() {
+        if (retryHandler != null && retryRunnable != null) {
+            retryHandler.removeCallbacks(retryRunnable);
+        }
+    }
+
     private void handleDelayedExit() {
-        // 3. Stop listening immediately so we don't get multiple callbacks
+        cancelRetryTimer();
         if (matchStatusListener != null) {
             matchStatusListener.remove();
-            matchStatusListener = null; // Prevent memory leaks/double calls
+            matchStatusListener = null;
         }
 
-        // 4. Wait 3 seconds then return to main menu
-        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-            // Use your existing navigation method
-            returnToMain();
-        }, 3000);
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(this::returnToMain, 3000);
     }
 
     private void launchGame() {
         isTransitioning = true;
+        cancelRetryTimer();
         if (matchStatusListener != null) matchStatusListener.remove();
 
-        // קודם בודקים מי מתחיל
         FirebaseUtils.checkIfIStart(isStarter -> {
-            // רק אחרי שהתשובה הגיעה, יוצרים את ה-Intent ועוברים
             Intent intent = new Intent(MatchmakingActivity.this, GameActivity.class);
             intent.putExtra("MATCH_ID", matchId);
             intent.putExtra("IS_STARTING_PLAYER", isStarter);
@@ -142,11 +182,10 @@ public class MatchmakingActivity extends AppCompatActivity implements FirebaseUt
     }
 
     private void handleExit() {
-        // Stop listening to avoid callbacks during destruction
+        cancelRetryTimer();
         if (matchStatusListener != null) matchStatusListener.remove();
 
         if (matchId != null && !isTransitioning) {
-            // Cleanup the match in Firebase before leaving
             FirebaseUtils.deleteMatch(matchId,
                     unused -> returnToMain(),
                     e -> returnToMain());
@@ -156,7 +195,6 @@ public class MatchmakingActivity extends AppCompatActivity implements FirebaseUt
     }
 
     private void returnToMain() {
-        // Since MainActivity was finished, we must create a new Intent to go back
         Intent intent = new Intent(this, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         startActivity(intent);
@@ -165,6 +203,7 @@ public class MatchmakingActivity extends AppCompatActivity implements FirebaseUt
 
     @Override
     public void onFailure(Exception e) {
+        cancelRetryTimer();
         Toast.makeText(this, "Matchmaking Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
         returnToMain();
     }
@@ -172,9 +211,9 @@ public class MatchmakingActivity extends AppCompatActivity implements FirebaseUt
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        cancelRetryTimer();
         if (matchStatusListener != null) matchStatusListener.remove();
 
-        // Final safety: If the user swiped the app away, try to delete the match
         if (!isTransitioning && matchId != null) {
             FirebaseUtils.deleteMatch(matchId);
         }

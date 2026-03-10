@@ -9,7 +9,6 @@ import com.example.cardmasters.model.dto.PlayedTurnDTO;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.OnFailureListener;
-import com.google.firebase.Firebase;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.EmailAuthProvider;
 import com.google.firebase.auth.FirebaseAuth;
@@ -18,7 +17,6 @@ import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
@@ -57,8 +55,6 @@ public class FirebaseUtils {
     // --------------------------------------------------------
     //   1) CREATE MATCH  (Start of the game loop)
     // --------------------------------------------------------
-    // Called once when two players join a match.
-    // Creates a match document with metadata.
     public static void createPendingMatch(
             String player1Id,
             OnSuccessListener<DocumentReference> onSuccess,
@@ -66,8 +62,8 @@ public class FirebaseUtils {
     ) {
         Map<String, Object> matchData = new HashMap<>();
         matchData.put("player1Id", player1Id);
-        matchData.put("player2Id", null);           // Player 2 is unknown/pending
-        matchData.put("status", "PENDING");         // New Status Field
+        matchData.put("player2Id", null);
+        matchData.put("status", "PENDING");
         matchData.put("turnNumber", 0);
         matchData.put("startingPlayer", null);
         matchData.put("winnerId", null);
@@ -83,13 +79,11 @@ public class FirebaseUtils {
 
     // --- 1. PUBLIC ENTRY POINT ---
     public static void searchForMatch(String playerId, MatchmakingListener listener) {
-        // Start the search process with 0 retries
         searchForMatchRecursive(playerId, listener, 0);
     }
 
     // --- 2. RECURSIVE SEARCH LOGIC ---
     private static void searchForMatchRecursive(String playerId, MatchmakingListener listener, int attempt) {
-        // Stop if we've tried too many times
         if (attempt >= MAX_MATCHMAKING_RETRIES) {
             Log.e(TAG, "Matchmaking timed out after " + MAX_MATCHMAKING_RETRIES + " attempts.");
             listener.onFailure(new Exception("Matchmaking timed out. No available matches found."));
@@ -98,7 +92,6 @@ public class FirebaseUtils {
 
         Log.d(TAG, "Searching for match, attempt #" + (attempt + 1));
 
-        // Query for a match that is PENDING, has no player 2, and wasn't created by us
         Query pendingMatchesQuery = getMatchesCollection()
                 .whereEqualTo("status", "PENDING")
                 .whereEqualTo("player2Id", null)
@@ -110,18 +103,15 @@ public class FirebaseUtils {
                 QuerySnapshot querySnapshot = task.getResult();
 
                 if (querySnapshot != null && !querySnapshot.isEmpty()) {
-                    // Found a potential match, let's try to join it.
                     DocumentReference matchRef = querySnapshot.getDocuments().get(0).getReference();
                     attemptJoinMatch(matchRef, playerId, listener, attempt);
                 } else {
-                    // No pending matches found. We will create our own (terminates recursion).
                     createPendingMatch(playerId,
                             docRef -> listener.onMatchCreated(docRef.getId()),
                             listener::onFailure
                     );
                 }
             } else {
-                // General query failure (e.g., network error)
                 listener.onFailure(task.getException());
             }
         });
@@ -137,50 +127,35 @@ public class FirebaseUtils {
         db.runTransaction(transaction -> {
             DocumentSnapshot matchSnapshot = transaction.get(matchRef);
 
-            // Check if the match is still available to be joined
-            if (matchSnapshot.exists()
-                    && matchSnapshot.getString("player2Id") == null
-                    && "PENDING".equals(matchSnapshot.getString("status"))) {
+            if (!matchSnapshot.exists()) {
+                throw new FirebaseFirestoreException("Match deleted", FirebaseFirestoreException.Code.NOT_FOUND);
+            }
 
-                // 1. Get the ID of the person who created the match
+            if (matchSnapshot.getString("player2Id") == null && "PENDING".equals(matchSnapshot.getString("status"))) {
                 String player1Id = matchSnapshot.getString("player1Id");
-
-                // 2. Decide the starting player randomly
                 String startingPlayerId = new Random().nextBoolean() ? player1Id : joiningPlayerId;
-                // It's available! Claim the spot.
+
                 transaction.update(matchRef, "player2Id", joiningPlayerId);
                 transaction.update(matchRef, "status", "READY");
                 transaction.update(matchRef, "lastUpdated", System.currentTimeMillis());
-                transaction.update(matchRef, "startingPlayer", startingPlayerId); // New Field
+                transaction.update(matchRef, "startingPlayer", startingPlayerId);
 
-
-                // Return the match ID on success
                 return matchRef.getId();
-
             } else {
-                // The match was taken by someone else or is no longer pending.
-                // We throw an ABORTED code exception to signal failure/retry.
                 throw new FirebaseFirestoreException("Match claimed", FirebaseFirestoreException.Code.ABORTED);
             }
         }).addOnSuccessListener(matchId -> {
-            // Success! The transaction completed and we joined the match.
             Log.d(TAG, "Successfully joined match: " + matchId);
             listener.onMatchFound(matchId);
 
         }).addOnFailureListener(e -> {
-            // --- FAILURE HANDLER ---
+            if (e instanceof FirebaseFirestoreException &&
+                    (((FirebaseFirestoreException) e).getCode() == FirebaseFirestoreException.Code.ABORTED ||
+                            ((FirebaseFirestoreException) e).getCode() == FirebaseFirestoreException.Code.NOT_FOUND)) {
 
-            // Check if the failure was because the transaction was aborted (our desired retry case)
-            if (e instanceof FirebaseFirestoreException && ((FirebaseFirestoreException) e).getCode() == FirebaseFirestoreException.Code.ABORTED) {
-
-                // This means the match was claimed by someone else (race condition).
-                Log.w(TAG, "Match was claimed by another player. Retrying search...");
-
-                // The correct retry logic: search again from the start with incremented attempt count.
+                Log.w(TAG, "Match was claimed or deleted. Retrying search...");
                 searchForMatchRecursive(joiningPlayerId, listener, currentAttempt + 1);
-
             } else {
-                // This was a different, more serious error (network, permissions, etc.).
                 Log.e(TAG, "Transaction failed with unexpected error.", e);
                 listener.onFailure(e);
             }
@@ -194,22 +169,16 @@ public class FirebaseUtils {
     }
 
     public static void checkIfIStart(OnStartingPlayerResult callback,String matchId) {
-
-
         if (matchId == null || matchId.isEmpty()) {
             Log.e(TAG, "checkIfIStart: matchId is null! Cannot check starter.");
             return;
         }
 
-        // 2. Get your email from Auth (Zero arguments)
         String myEmail = auth.getCurrentUser() != null ? auth.getCurrentUser().getEmail() : null;
 
-        // 3. Hit the database
         getMatchDocument(matchId).get().addOnSuccessListener(snapshot -> {
             if (snapshot.exists()) {
                 String starter = snapshot.getString("startingPlayer");
-
-                // 4. Compare and return the result through the listener
                 boolean amIStarter = myEmail != null && myEmail.equals(starter);
                 callback.onResult(amIStarter);
             } else {
@@ -223,7 +192,7 @@ public class FirebaseUtils {
     public static void finishMatch(String matchId, String winnerId, OnSuccessListener<Void> onSuccess, OnFailureListener onFailure) {
         Map<String, Object> updates = new HashMap<>();
         updates.put("status", "COMPLETED");
-        updates.put("winnerId", winnerId); // Null if a draw
+        updates.put("winnerId", winnerId);
         updates.put("lastUpdated", System.currentTimeMillis());
 
         getMatchesCollection().document(matchId)
@@ -232,19 +201,42 @@ public class FirebaseUtils {
                 .addOnFailureListener(onFailure);
     }
 
-
-
-    // Simple interface for the result
     public interface OnStartingPlayerResult {
         void onResult(boolean isStartingPlayer);
     }
 
-
+    // --- מחיקה עיוורת (רגילה) ---
     public static void deleteMatch(String matchId, OnSuccessListener<Void> onSuccess, OnFailureListener onFailure) {
         getMatchesCollection().document(matchId)
                 .delete()
                 .addOnSuccessListener(onSuccess)
                 .addOnFailureListener(onFailure);
+    }
+
+    // --- מחיקה חכמה לטיימר (מונע חדרי רפאים!) ---
+    public static void abortPendingMatchSafely(String matchId, Runnable onDeleted, Runnable onAlreadyJoined) {
+        DocumentReference matchRef = getMatchDocument(matchId);
+
+        db.runTransaction(transaction -> {
+            DocumentSnapshot snapshot = transaction.get(matchRef);
+
+            // בודק שהחדר עדיין על PENDING (כלומר, השחקן השני עדיין לא תפס אותו)
+            if (snapshot.exists() && "PENDING".equals(snapshot.getString("status"))) {
+                transaction.delete(matchRef);
+                return true; // אישור שהחדר נמחק
+            }
+            return false; // מישהו בדיוק הצטרף! אנחנו לא מוחקים.
+
+        }).addOnSuccessListener(deleted -> {
+            if (Boolean.TRUE.equals(deleted)) {
+                if (onDeleted != null) onDeleted.run();
+            } else {
+                if (onAlreadyJoined != null) onAlreadyJoined.run();
+            }
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "Transaction failed in abortPendingMatchSafely", e);
+            if (onDeleted != null) onDeleted.run(); // במקרה של שגיאה עדיף למחוק/לחפש מחדש
+        });
     }
 
     public static ListenerRegistration listenForMatchStatus(
@@ -261,16 +253,13 @@ public class FirebaseUtils {
 
                     if (snapshot != null) {
                         if (snapshot.exists()) {
-                            // Match still exists (e.g., status changed to COMPLETED)
                             listener.onStatusChange(snapshot.getData());
                         } else {
-                            // Match was deleted by the server or the winning client
                             listener.onMatchDeleted();
                         }
                     }
                 });
     }
-
 
     public interface OnMatchStatusChangeListener {
         void onStatusChange(Map<String, Object> matchData);
@@ -278,12 +267,6 @@ public class FirebaseUtils {
         void onError(Exception e);
     }
 
-
-    // --------------------------------------------------------
-    //   2) SUBMIT TURN  (Player performs an action)
-    // --------------------------------------------------------
-    // This adds a turn document inside   /matches/{id}/turns/
-    // DOES NOT CHANGE currentPlayer or turnNumber — that’s part of the loop logic.
     public static void submitTurn(
             String matchId,
             PlayedTurnDTO turn,
@@ -295,17 +278,6 @@ public class FirebaseUtils {
                 .addOnFailureListener(e -> callback.accept(false));
     }
 
-
-    // --------------------------------------------------------
-    //   3) LISTEN FOR NEW TURNS (Core of turn-based gameplay)
-    // --------------------------------------------------------
-    // Called when the game is running.
-    // Every time /turns/ gets a new document → callback fires.
-    //
-    // This is how you know:
-    //   - the opponent played
-    //   - turnNumber should increase
-    //   - UI should update
     public static ListenerRegistration listenForTurns(
             String matchId,
             TurnListener callback
@@ -335,41 +307,23 @@ public class FirebaseUtils {
         void onTurnReceived(String turnId, Map<String, Object> turnData);
     }
 
-
-    // --------------------------------------------------------
-    //   4) GET MATCH (Read current match state one-time)
-    // --------------------------------------------------------
     public static Task<DocumentSnapshot> getMatch(String matchId) {
         return getMatchDocument(matchId).get();
     }
 
-
-    // --------------------------------------------------------
-    //   5) UPDATE MATCH AFTER A TURN
-    // --------------------------------------------------------
-    // This is what advances the game loop:
-    //   - turnNumber++
-    //   - currentPlayer switches
-    //   - lastUpdated refreshes (for timeouts)
-    //
-    // This must be called AFTER submitTurn().
     public static void updateMatchAfterTurn(
             String matchId,
             String nextPlayerId
     ) {
         Map<String, Object> updates = new HashMap<>();
         updates.put("currentPlayer", nextPlayerId);
-        updates.put("turnNumber", FieldValue.increment(1));// increment by 1 מגדיל את מספר התור בתיאום עם הפיירבייס
+        updates.put("turnNumber", FieldValue.increment(1));
         updates.put("lastUpdated", System.currentTimeMillis());
 
         getMatchDocument(matchId).update(updates)
                 .addOnFailureListener(e -> Log.e(TAG, "Failed updating match: ", e));
     }
 
-
-    // --------------------------------------------------------
-    //   6) SET WINNER (End of the game loop)
-    // --------------------------------------------------------
     public static void declareWinner(String matchId, String winnerId) {
         getMatchDocument(matchId)
                 .update("winnerId", winnerId)
@@ -377,31 +331,22 @@ public class FirebaseUtils {
                 .addOnFailureListener(e -> Log.e(TAG, "Failed to set winner", e));
     }
 
-
-    // --------------------------------------------------------
-    //   7) DELETE MATCH + ALL TURNS (Cleanup)
-    // --------------------------------------------------------
-    // Call this after match ends.
     public static void deleteMatch(String matchId) {
-
-        // delete turns collection first
         getTurnsCollection(matchId)
                 .get()
                 .addOnSuccessListener(q -> {
                     for (DocumentSnapshot doc : q.getDocuments()) {
                         doc.getReference().delete();
                     }
-
-                    // delete match
                     getMatchDocument(matchId).delete();
                 });
     }
+
     public interface UsernameCallback {
         void onUsernameLoaded(String username);
         void onError(Exception e);
     }
 
-    // Fetch username from Firestore
     public static void getUsername(UsernameCallback callback) {
         FirebaseUser currentUser = auth.getCurrentUser();
         if (currentUser == null) {
@@ -427,11 +372,7 @@ public class FirebaseUtils {
         return FirebaseAuth.getInstance().getCurrentUser();
     }
 
-    // -------------------------------------------------------------
-    // ★ Update username in Firestore + locally
-    // -------------------------------------------------------------
     public static void updateUsername(Context context, String newUsername, Runnable onSuccess) {
-
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) {
             Toast.makeText(context, "Not logged in", Toast.LENGTH_SHORT).show();
@@ -442,10 +383,7 @@ public class FirebaseUtils {
                 .update("username", newUsername)
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(context, "Username updated", Toast.LENGTH_SHORT).show();
-
-                    // Save locally
                     UserPrefsUtils.saveUsername(context, newUsername);
-
                     if (onSuccess != null) onSuccess.run();
                 })
                 .addOnFailureListener(e -> {
@@ -454,15 +392,12 @@ public class FirebaseUtils {
                 });
     }
 
-
-
     public static void updatePlayerRating( long pointsDelta) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-
         FirebaseUser user= getCurrentUser();
 
         if (user==null) return;
-        // Use FieldValue.increment to safely add or subtract
+
         db.collection("users").document(user.getUid())
                 .update("rating", FieldValue.increment(pointsDelta))
                 .addOnSuccessListener(aVoid -> {
@@ -473,11 +408,7 @@ public class FirebaseUtils {
                 });
     }
 
-    // -------------------------------------------------------------
-    // ★ Re-authenticate + delete Firestore + delete Auth + clear prefs
-    // -------------------------------------------------------------
     public static void reauthAndDelete(Context context, Runnable onSuccess) {
-
         String email = UserPrefsUtils.getEmail(context);
         String password = UserPrefsUtils.getPassword(context);
 
@@ -495,32 +426,21 @@ public class FirebaseUtils {
             return;
         }
 
-        // יוצר מין כרטיס כניסה בעזרת עצמים של הפיירבייס
         AuthCredential credential = EmailAuthProvider.getCredential(email, password);
 
         user.reauthenticate(credential).addOnSuccessListener(aVoid -> {
-
             String uid = user.getUid();
 
-            // 1) delete from Firestore
             db.collection("users").document(uid)
                     .delete()
                     .addOnSuccessListener(unused -> {
-
-                        // 2) delete Auth user
                         user.delete().addOnSuccessListener(aVoid1 -> {
-
-                            // 3) clear shared prefs
                             UserPrefsUtils.clear(context);
-
                             Toast.makeText(context, "User deleted successfully", Toast.LENGTH_SHORT).show();
-
                             if (onSuccess != null) onSuccess.run();
-
                         }).addOnFailureListener(e -> {
                             Toast.makeText(context, "Failed to delete Auth user", Toast.LENGTH_SHORT).show();
                         });
-
                     })
                     .addOnFailureListener(e -> {
                         Toast.makeText(context, "Failed to delete Firestore user", Toast.LENGTH_SHORT).show();
@@ -530,7 +450,4 @@ public class FirebaseUtils {
             Toast.makeText(context, "Re-authentication failed", Toast.LENGTH_SHORT).show();
         });
     }
-
 }
-
-
