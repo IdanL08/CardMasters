@@ -1,6 +1,7 @@
 package com.example.cardmasters.model.cards;
 
 import com.example.cardmasters.model.Effect;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,12 +36,28 @@ public class FighterCard extends Card {
 
     // --- LOGIC METHODS ---
 
+    public int getBaseAtk() {
+        return this.atk;
+    }
+
     public int getAtk() {
-        return this.atk; // מחזיר ישירות בלי חישובים באוויר
+        int currentAtk = this.atk;
+        for (Effect e : activeEffects) {
+            if (e.getTarget() == Effect.Target.ATK) {
+                currentAtk = e.apply(currentAtk);
+            }
+        }
+        return currentAtk;
     }
 
     public int getHp() {
-        return this.hp - currentDamage; // מחזיר ישירות
+        int currentHp = this.hp;
+        for (Effect e : activeEffects) {
+            if (e.getTarget() == Effect.Target.HP) {
+                currentHp = e.apply(currentHp);
+            }
+        }
+        return currentHp - currentDamage;
     }
 
     public void takeDamage(int amount) {
@@ -52,21 +69,12 @@ public class FighterCard extends Card {
     }
 
     public void onDeath(){
-        // apply on death effect
+        //apply on death effect
     }
 
-    /**
-     * פונקציה קריטית: אם האפקט הוא כוח או חיים - הוא משנה את הסטאטים מיד.
-     * אם זה התקפה נוספת או שליפת קלף - הוא נשמר ברשימה לשימוש עתידי.
-     */
     public void addEffect(Effect effect) {
-        if (effect.getTarget() == Effect.Target.ATK) {
-            this.atk = effect.apply(this.atk);
-        } else if (effect.getTarget() == Effect.Target.HP) {
-            this.hp = effect.apply(this.hp);
-        } else {
-            activeEffects.add(effect);
-        }
+        // עכשיו הכל נכנס לרשימה כדי שנשמור על ההיסטוריה וסדר הפעולות!
+        activeEffects.add(effect);
     }
 
     @Override

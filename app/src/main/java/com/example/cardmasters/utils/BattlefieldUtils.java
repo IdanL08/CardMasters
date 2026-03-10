@@ -4,12 +4,11 @@ import android.util.Log;
 import com.example.cardmasters.model.Effect;
 import com.example.cardmasters.model.Hero;
 import com.example.cardmasters.model.cards.FighterCard;
-// אל תשכח לייבא את המחלקות של Hero ושאר הדברים שלך
 
 import java.util.Iterator;
 import java.util.List;
 
-public class BattlefieldUtils {//(8)
+public class BattlefieldUtils {
 
     public static final int NUM_STARTING_CARDS = 4;
     private static final String TAG = "BattlefieldUtils";
@@ -40,25 +39,6 @@ public class BattlefieldUtils {//(8)
     }
 
     /**
-     * פונקציה שסופרת התקפות בונוס ו"שורפת" אותן (מוחקת מהרשימה)
-     */
-    private static int consumeBonusAttacks(FighterCard card) {
-        if (card == null || card.getActiveEffects() == null) return 0;
-
-        int bonusCount = 0;
-        Iterator<Effect> iterator = card.getActiveEffects().iterator();
-
-        while (iterator.hasNext()) {
-            Effect e = iterator.next();
-            if (e.getTarget() == Effect.Target.BONUS_ATK) {
-                bonusCount = e.apply(bonusCount);
-                iterator.remove(); // מוחק את האפקט מיד כדי שלא יחזור תור הבא
-            }
-        }
-        return bonusCount;
-    }
-
-    /**
      * פונקציה שבודקת האם הקלף צריך לשלוף קלפים אחרי התקפה (PvZ Heroes style)
      */
     private static void handleOnAttackEffects(FighterCard attacker, Hero attackerHero) {
@@ -75,28 +55,45 @@ public class BattlefieldUtils {//(8)
     }
 
     /**
-     * מבצע את סדרת התקפות הבונוס של קלף מסוים.
+     * פונקציה שמדמה את ציר הזמן בדיוק לפי סדר הנחת הקלפים (פותר את בעיית הבונוס לפני באף כוח)
      */
-    private static void performBonusAttacks(FighterCard attacker, FighterCard defender, Hero defendingHero, Hero attackingHero) {
-        if (attacker == null || attacker.isDead()) return;
+    private static void executePreCombatTimeline(FighterCard attacker, FighterCard defender, Hero defendingHero, Hero attackingHero) {
+        if (attacker == null || attacker.isDead() || attacker.getActiveEffects() == null) return;
 
-        int bonusCount = consumeBonusAttacks(attacker);
+        // מתחילים מהכוח הבסיסי של הקלף ומתקדמים לאורך ציר הזמן
+        int timelineAtk = attacker.getBaseAtk();
 
-        for (int i = 0; i < bonusCount; i++) {
-            if (attacker.isDead()) break;
+        Iterator<Effect> iterator = attacker.getActiveEffects().iterator();
 
-            int dmg = attacker.getAtk();
+        while (iterator.hasNext()) {
+            Effect e = iterator.next();
 
-            if (defender != null && !defender.isDead()) {
-                Log.d(TAG, attacker.getName() + " BONUS ATTACKS " + defender.getName() + " for " + dmg);
-                defender.takeDamage(dmg);
-            } else {
-                Log.d(TAG, attacker.getName() + " BONUS ATTACKS Hero for " + dmg);
-                defendingHero.takeDamage(dmg);
+            // אם זה באף של כוח, אנחנו מעדכנים את הכוח הווירטואלי בציר הזמן
+            if (e.getTarget() == Effect.Target.ATK) {
+                timelineAtk = e.apply(timelineAtk);
             }
+            // אם זו התקפת בונוס, היא משתמשת בכוח הווירטואלי שנצבר *עד כה*
+            else if (e.getTarget() == Effect.Target.BONUS_ATK) {
+                int bonusCount = e.apply(0);
 
-            // קורא לאפקטים שקורים אחרי כל מכה (כמו שליפת קלף)
-            handleOnAttackEffects(attacker, attackingHero);
+                for (int i = 0; i < bonusCount; i++) {
+                    if (attacker.isDead()) break;
+
+                    if (defender != null && !defender.isDead()) {
+                        Log.d(TAG, attacker.getName() + " BONUS ATTACKS " + defender.getName() + " for " + timelineAtk);
+                        defender.takeDamage(timelineAtk);
+                    } else {
+                        Log.d(TAG, attacker.getName() + " BONUS ATTACKS Hero for " + timelineAtk);
+                        defendingHero.takeDamage(timelineAtk);
+                    }
+
+                    handleOnAttackEffects(attacker, attackingHero);
+                }
+
+                // חשוב: אנחנו מוחקים *רק* את התקפת הבונוס הנוכחית דרך האיטרטור
+                // כדי שהיא לא תקרה שוב בתור הבא, שאר האפקטים (כמו תוספת כוח) נשארים!
+                iterator.remove();
+            }
         }
     }
 
@@ -110,11 +107,11 @@ public class BattlefieldUtils {//(8)
         FighterCard secondCard = secondLanes.get(laneIndex);
 
         // ==========================================
-        // שלב 1: התקפות בונוס (לפני הקרב הרגיל)
+        // שלב 1: ציר הזמן של ההשפעות (לפני הקרב הרגיל)
         // ==========================================
 
-        performBonusAttacks(firstCard, secondCard, secondHero, firstHero);
-        performBonusAttacks(secondCard, firstCard, firstHero, secondHero);
+        executePreCombatTimeline(firstCard, secondCard, secondHero, firstHero);
+        executePreCombatTimeline(secondCard, firstCard, firstHero, secondHero);
 
         // מעדכנים את הלוח במקרה שמישהו מת מהתקפות הבונוס
         if (firstCard != null && firstCard.isDead()) {
@@ -133,7 +130,7 @@ public class BattlefieldUtils {//(8)
         // ==========================================
 
         if (firstCard != null && secondCard != null) {
-            int pAtk = firstCard.getAtk();
+            int pAtk = firstCard.getAtk(); // כאן זה ישתמש ב-getAtk המלא שכולל את כל הבאפים
             int eAtk = secondCard.getAtk();
 
             firstCard.takeDamage(eAtk);
