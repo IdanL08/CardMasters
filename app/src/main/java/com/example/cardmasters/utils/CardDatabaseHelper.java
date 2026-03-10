@@ -20,7 +20,7 @@ public class CardDatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "CardMasters.db";
     private static final int DATABASE_VERSION = 3; // Incremented for schema simplification
-    public static final int MAX_DECK_SIZE = 4;
+    public static final int MAX_DECK_SIZE = 8;
 
     public CardDatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -78,7 +78,7 @@ public class CardDatabaseHelper extends SQLiteOpenHelper {
         //insertEffectCard(db, "radioactive_can", "radioactive_can", 3, Effect.Target.ATK, Effect.Type.ADD, -3);//אוותר על הקלף בינתיים  // להחליף להורדת התקפה על היריב
         insertEffectCard(db, "slot_machine", "slot_machine", 3, Effect.Target.DRAW_CARD, Effect.Type.ADD, 2);//להחליף ללקיחת שני קלפים
         insertEffectCard(db, "sunsets", "sunsets", 2, Effect.Target.ATK, Effect.Type.ADD, 5);
-        insertEffectCard(db, "bomber_boomer", "bomber_boomer", 3, Effect.Target.HP, Effect.Type.ADD, -3);//להחליף לדמג על היריב
+        //insertEffectCard(db, "bomber_boomer", "bomber_boomer", 3, Effect.Target.HP, Effect.Type.ADD, -3);//להחליף לדמג על היריב
     }
 
     private void insertFighter(SQLiteDatabase db, String id, String name, int cost, int hp, int atk) {

@@ -3,6 +3,7 @@ package com.example.cardmasters;
 import android.app.Dialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.widget.Button;
@@ -13,6 +14,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.cardmasters.utils.CardDatabaseHelper;
 import com.example.cardmasters.utils.LeaderboardAdapter;
 import com.example.cardmasters.utils.lootboxes_utils.AlarmUtils;
 
@@ -65,8 +67,25 @@ public class MainActivity extends AppCompatActivity {
 
         // === ACTIVITY INTENTS ===
 
-        btnGame.setOnClickListener(v ->
-                startActivity(new Intent(this, MatchmakingActivity.class)));
+        btnGame.setOnClickListener(v -> {
+            // פותחים חוט רקע כדי לא לחסום את ממשק המשתמש (מונע בעיות I/O)
+            new Thread(() -> {
+                CardDatabaseHelper dbHelper = new CardDatabaseHelper(MainActivity.this);
+                int currentDeckSize = dbHelper.getDeckSize();
+
+                // חוזרים לחוט הראשי כדי לעדכן את ה-UI או לעבור מסך
+                runOnUiThread(() -> {
+                    if (currentDeckSize == CardDatabaseHelper.MAX_DECK_SIZE) {
+                        // הדק מלא ותקין - אפשר לצאת לקרב!
+                        startActivity(new Intent(MainActivity.this, MatchmakingActivity.class));
+                    } else {
+                        // חסרים קלפים - מציגים אנימציית שגיאה
+
+                        showErrorFloatingText("INVALID DECK!\nYOU NEED " + "8 CARDS IN DECK");
+                    }
+                });
+            }).start();
+        });
 
 
         btnCollection.setOnClickListener(v ->
@@ -76,7 +95,7 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(new Intent(this, ProfileActivity.class));
                 finish();});
 
-        btnLootbox.setOnClickListener(v -> {//TODO הוסף קלפים ויהלומים
+        btnLootbox.setOnClickListener(v -> {
             Intent intent = new Intent(this, LootBoxActivity.class);
             lootboxLauncher.launch(intent);
         });
@@ -87,6 +106,46 @@ public class MainActivity extends AppCompatActivity {
 
         btnLeaderboard.setOnClickListener(v -> LeaderboardAdapter.showLeaderboardDialog(this));
         btnFriends.setOnClickListener(v -> showCustomDialog("Friends"));//TODO הצג את כל השחקנים, הצג את החברים למעלה
+    }
+
+    private void showErrorFloatingText(String message) {
+        ViewGroup root = findViewById(android.R.id.content);
+        if (root == null) return;
+
+        TextView floatingText = new TextView(this);
+        floatingText.setText(message);
+
+        // צבע אדום של אזהרה/שגיאה עם צללית כבדה
+        floatingText.setTextColor(android.graphics.Color.parseColor("#E74C3C"));
+        floatingText.setTextSize(24f);
+        floatingText.setTypeface(null, android.graphics.Typeface.BOLD);
+        floatingText.setGravity(android.view.Gravity.CENTER);
+        floatingText.setShadowLayer(8f, 4f, 4f, android.graphics.Color.BLACK);
+
+        android.widget.FrameLayout.LayoutParams params = new android.widget.FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        params.gravity = android.view.Gravity.CENTER;
+        floatingText.setLayoutParams(params);
+
+        root.addView(floatingText);
+
+        // האנימציה: מרחף מלמטה למרכז המסך, נעצר לשנייה, ואז ממשיך למעלה ונעלם
+        floatingText.setTranslationY(100f);
+        floatingText.setAlpha(0f);
+        floatingText.animate()
+                .translationY(-50f).alpha(1f)
+                .setDuration(400)
+                .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                .withEndAction(() -> {
+                    floatingText.animate()
+                            .translationY(-150f).alpha(0f)
+                            .setStartDelay(1200) // נשאר על המסך כדי שהשחקן יספיק לקרוא
+                            .setDuration(400)
+                            .withEndAction(() -> root.removeView(floatingText))
+                            .start();
+                }).start();
     }
 
     // Simple reusable custom dialog method

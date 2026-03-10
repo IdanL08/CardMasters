@@ -140,10 +140,22 @@ public class GameActivity extends AppCompatActivity {
         timerBg.setStroke(2, android.graphics.Color.parseColor("#7F8C8D"));
         txtTimer.setBackground(timerBg);
 
-        setEndTurnEnabled(true);
-
+        enableEndTurnWithDelay();
         btnSendTurn.setOnClickListener(v -> submitTurn());
         btnBack.setOnClickListener(v -> showQuitConfirmationDialog());
+    }
+
+    /**
+     * פונקציה שנועלת את הכפתור ופותחת אותו רק אחרי 2 שניות של חסד
+     */
+    private void enableEndTurnWithDelay() {
+        setEndTurnEnabled(false); // נועלים מיד
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            // פותחים רק אם המשחק עדיין פעיל והתור לא הוגש אוטומטית בינתיים
+            if (playerHero.getHealth() > 0 && enemyHero.getHealth() > 0 && !turnSubmitted) {
+                setEndTurnEnabled(true);
+            }
+        }, 2000); // השהיה של 2000 מילישניות (2 שניות)
     }
 
     private void setEndTurnEnabled(boolean isEnabled) {
@@ -179,7 +191,7 @@ public class GameActivity extends AppCompatActivity {
     // מנגנון הטיימרים
     // ==========================================
 
-    private void startTurnTimer() {
+    private void startTurnTimer() {//מופעל בתחילת המשחק ובתור חדש בסיום הקרב
         cancelTimers();
         txtTimer.setTextColor(android.graphics.Color.WHITE);
 
@@ -205,7 +217,7 @@ public class GameActivity extends AppCompatActivity {
         }.start();
     }
 
-    private void startGraceTimer() {
+    private void startGraceTimer() {//למען דיליי רשת
         graceTimer = new android.os.CountDownTimer(GRACE_PERIOD, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
