@@ -34,6 +34,7 @@ public class LootBoxActivity extends AppCompatActivity {
         lootboxCount = prefs.getInt("lootbox_count", 9);
 
 
+
         btnBack = findViewById(R.id.btn_back_to_main);
         chestView = findViewById(R.id.chestView);
         btnOpen = findViewById(R.id.btnOpen);

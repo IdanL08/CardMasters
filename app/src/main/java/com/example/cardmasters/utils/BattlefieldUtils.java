@@ -14,13 +14,19 @@ public class BattlefieldUtils {
     private static final String TAG = "BattlefieldUtils";
     public static final int NUM_LANES = 5;
 
+    // הממשק שמונע ספגטי קוד - מעביר את האירועים חזרה ל-Activity
+    public interface BattleEventsListener {
+        void onCardDraw(Hero hero, int amount);
+    }
+
     public static void fieldBattle(List<FighterCard> firstLanes,
                                    List<FighterCard> secondLanes,
                                    Hero firstHero,
-                                   Hero secondHero) {
+                                   Hero secondHero,
+                                   BattleEventsListener listener) { // הוספנו את המאזין
 
         for (int i = 0; i < NUM_LANES; i++) {
-            laneBattle(i, firstLanes, secondLanes, firstHero, secondHero);
+            laneBattle(i, firstLanes, secondLanes, firstHero, secondHero, listener);
         }
         handleDeaths(firstLanes, secondLanes);
     }
@@ -38,41 +44,33 @@ public class BattlefieldUtils {
         }
     }
 
-    /**
-     * פונקציה שבודקת האם הקלף צריך לשלוף קלפים אחרי התקפה (PvZ Heroes style)
-     */
-    private static void handleOnAttackEffects(FighterCard attacker, Hero attackerHero) {
+    private static void handleOnAttackEffects(FighterCard attacker, Hero attackerHero, BattleEventsListener listener) {
         if (attacker == null || attacker.isDead() || attacker.getActiveEffects() == null) return;
 
         for (Effect e : attacker.getActiveEffects()) {
             if (e.getTarget() == Effect.Target.DRAW_CARD) {
-                int cardsToDraw = e.apply(0); // מחשב כמה קלפים לשלוף לפי ה-value של האפקט
-                Log.d(TAG, attacker.getName() + " draws " + cardsToDraw + " cards!");
-                // כאן תקרא לפונקציה של הגיבור/שחקן ששולפת קלפים:
-                // attackerHero.drawCards(cardsToDraw);
+                int cardsToDraw = e.apply(0);
+                Log.d(TAG, attacker.getName() + " triggers draw effect for " + cardsToDraw + " cards!");
+                // העברת הטיפול למי שמאזין (GameActivity) בלי לערבב UI
+                if (listener != null) {
+                    listener.onCardDraw(attackerHero, cardsToDraw);
+                }
             }
         }
     }
 
-    /**
-     * פונקציה שמדמה את ציר הזמן בדיוק לפי סדר הנחת הקלפים (פותר את בעיית הבונוס לפני באף כוח)
-     */
-    private static void executePreCombatTimeline(FighterCard attacker, FighterCard defender, Hero defendingHero, Hero attackingHero) {
+    private static void executePreCombatTimeline(FighterCard attacker, FighterCard defender, Hero defendingHero, Hero attackingHero, BattleEventsListener listener) {
         if (attacker == null || attacker.isDead() || attacker.getActiveEffects() == null) return;
 
-        // מתחילים מהכוח הבסיסי של הקלף ומתקדמים לאורך ציר הזמן
         int timelineAtk = attacker.getBaseAtk();
-
         Iterator<Effect> iterator = attacker.getActiveEffects().iterator();
 
         while (iterator.hasNext()) {
             Effect e = iterator.next();
 
-            // אם זה באף של כוח, אנחנו מעדכנים את הכוח הווירטואלי בציר הזמן
             if (e.getTarget() == Effect.Target.ATK) {
                 timelineAtk = e.apply(timelineAtk);
             }
-            // אם זו התקפת בונוס, היא משתמשת בכוח הווירטואלי שנצבר *עד כה*
             else if (e.getTarget() == Effect.Target.BONUS_ATK) {
                 int bonusCount = e.apply(0);
 
@@ -87,11 +85,8 @@ public class BattlefieldUtils {
                         defendingHero.takeDamage(timelineAtk);
                     }
 
-                    handleOnAttackEffects(attacker, attackingHero);
+                    handleOnAttackEffects(attacker, attackingHero, listener);
                 }
-
-                // חשוב: אנחנו מוחקים *רק* את התקפת הבונוס הנוכחית דרך האיטרטור
-                // כדי שהיא לא תקרה שוב בתור הבא, שאר האפקטים (כמו תוספת כוח) נשארים!
                 iterator.remove();
             }
         }
@@ -101,19 +96,15 @@ public class BattlefieldUtils {
                                    List<FighterCard> firstLanes,
                                    List<FighterCard> secondLanes,
                                    Hero firstHero,
-                                   Hero secondHero) {
+                                   Hero secondHero,
+                                   BattleEventsListener listener) {
 
         FighterCard firstCard = firstLanes.get(laneIndex);
         FighterCard secondCard = secondLanes.get(laneIndex);
 
-        // ==========================================
-        // שלב 1: ציר הזמן של ההשפעות (לפני הקרב הרגיל)
-        // ==========================================
+        executePreCombatTimeline(firstCard, secondCard, secondHero, firstHero, listener);
+        executePreCombatTimeline(secondCard, firstCard, firstHero, secondHero, listener);
 
-        executePreCombatTimeline(firstCard, secondCard, secondHero, firstHero);
-        executePreCombatTimeline(secondCard, firstCard, firstHero, secondHero);
-
-        // מעדכנים את הלוח במקרה שמישהו מת מהתקפות הבונוס
         if (firstCard != null && firstCard.isDead()) {
             firstCard.onDeath();
             firstLanes.set(laneIndex, null);
@@ -125,32 +116,27 @@ public class BattlefieldUtils {
             secondCard = null;
         }
 
-        // ==========================================
-        // שלב 2: הקרב הרגיל והסימולטני
-        // ==========================================
-
         if (firstCard != null && secondCard != null) {
-            int pAtk = firstCard.getAtk(); // כאן זה ישתמש ב-getAtk המלא שכולל את כל הבאפים
+            int pAtk = firstCard.getAtk();
             int eAtk = secondCard.getAtk();
 
             firstCard.takeDamage(eAtk);
             secondCard.takeDamage(pAtk);
 
-            // הפעלת אפקטים שאחרי התקפה רגילה
-            handleOnAttackEffects(firstCard, firstHero);
-            handleOnAttackEffects(secondCard, secondHero);
+            handleOnAttackEffects(firstCard, firstHero, listener);
+            handleOnAttackEffects(secondCard, secondHero, listener);
 
         } else if (firstCard != null) {
             int damage = firstCard.getAtk();
             Log.d(TAG, firstCard.getName() + " attacks Enemy Hero for " + damage);
             secondHero.takeDamage(damage);
-            handleOnAttackEffects(firstCard, firstHero);
+            handleOnAttackEffects(firstCard, firstHero, listener);
 
         } else if (secondCard != null) {
             int damage = secondCard.getAtk();
             Log.d(TAG, secondCard.getName() + " attacks Player Hero for " + damage);
             firstHero.takeDamage(damage);
-            handleOnAttackEffects(secondCard, secondHero);
+            handleOnAttackEffects(secondCard, secondHero, listener);
         }
     }
 }

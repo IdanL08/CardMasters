@@ -1,7 +1,6 @@
 package com.example.cardmasters;
 
 import android.content.Intent;
-import android.graphics.Rect;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -18,7 +17,6 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
@@ -48,14 +46,11 @@ public class GameActivity extends AppCompatActivity {
 
     private static final String TAG = "GameActivity";
 
-    // UI Components
     private TextView txtMatchId, txtOpponentHero, txtMyHero, txtMoney;
     private LinearLayout playerLaneContainer, enemyLaneContainer, handContainer;
     private Button btnSendTurn, btnBack;
     private ListenerRegistration matchDeleteListener;
 
-
-    // Game State
     private String matchId;
     private CardDatabaseHelper cardDbHelper;
     private Hero playerHero, enemyHero;
@@ -63,18 +58,16 @@ public class GameActivity extends AppCompatActivity {
     private List<Card> playerHand;
     private List<Card> playerDeck;
 
-    // Turn Tracking & Synchronization
     private int currentTurnNumber = 1;
-    private int money=currentTurnNumber;
+    private int money = currentTurnNumber;
     private boolean turnSubmitted = false;
-    private PlayedTurnDTO pendingEnemyTurn = null; // Holds opponent's move if it arrives early
+    private PlayedTurnDTO pendingEnemyTurn = null;
     private final List<PlayedActionDTO> actionSequence = new ArrayList<>();
     private ListenerRegistration turnListener;
     private Card currentDraggingCard = null;
-    private Random rand = new Random(); // Create it once outside the loop
+    private Random rand = new Random();
 
     private boolean isStartingPlayer;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,20 +77,17 @@ public class GameActivity extends AppCompatActivity {
         WindowInsetsController controller = getWindow().getInsetsController();
         if (controller != null) {
             controller.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
-            controller.setSystemBarsBehavior(
-                    WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            );
+            controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
         }
 
         matchId = getIntent().getStringExtra("MATCH_ID");
         if (matchId == null) {
-            Toast.makeText(this, "Match Error: No ID found", Toast.LENGTH_SHORT).show();
+            Log.e(TAG, "Match Error: No ID found");
             finish();
             return;
         }
-        // The second argument (false) is the default value if the key "IS_STARTING_PLAYER" isn't found
-        isStartingPlayer = getIntent().getBooleanExtra("IS_STARTING_PLAYER", false);
 
+        isStartingPlayer = getIntent().getBooleanExtra("IS_STARTING_PLAYER", false);
 
         initUI();
         initGameState();
@@ -107,9 +97,7 @@ public class GameActivity extends AppCompatActivity {
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
-            public void handleOnBackPressed() {
-                quitGame();
-            }
+            public void handleOnBackPressed() { quitGame(); }
         });
     }
 
@@ -117,7 +105,7 @@ public class GameActivity extends AppCompatActivity {
         txtMatchId = findViewById(R.id.txtMatchId);
         txtOpponentHero = findViewById(R.id.txtOpponentHero);
         txtMyHero = findViewById(R.id.txtMyHero);
-        txtMoney= findViewById(R.id.txtMoney);
+        txtMoney = findViewById(R.id.txtMoney);
         playerLaneContainer = findViewById(R.id.player_lane_container);
         enemyLaneContainer = findViewById(R.id.enemy_lane_container);
         handContainer = findViewById(R.id.hand_container);
@@ -141,59 +129,99 @@ public class GameActivity extends AppCompatActivity {
             enemyLanes.add(null);
         }
 
-        loadPlayerHand();
-        updateHeroUI();
-        //log("Battle sequence initialized. Round 1 Start!");
-    }
-
-    public boolean getTurnSubmitted() {
-        return turnSubmitted;
-    }
-
-    private void loadPlayerHand() {
         playerDeck = cardDbHelper.getActiveDeck();
         playerHand = new ArrayList<>();
 
+        drawCards(BattlefieldUtils.NUM_STARTING_CARDS);
+        updateHeroUI();
+    }
 
+    public boolean getTurnSubmitted() { return turnSubmitted; }
 
+    private void drawCards(int amount) {
+        if (playerDeck == null || playerDeck.isEmpty()) return;
 
-        for (int i = 0; i < BattlefieldUtils.NUM_STARTING_CARDS; i++) {
-            // 1. Use .size() instead of .length
+        for (int i = 0; i < amount; i++) {
             int randomIndex = rand.nextInt(playerDeck.size());
-
-            // 2. Use .get() instead of [index]
             playerHand.add(playerDeck.get(randomIndex).cloneCard());
         }
+        refreshHandUI();
+    }
 
-
+    private void refreshHandUI() {
         handContainer.removeAllViews();
-
-        for (Card c : playerHand) {//יישום UI
-            // Inflate the complex layout instead of a simple ImageView
-            View cardView = UIUtils.createViewCard(getLayoutInflater(),  handContainer,  c,   this);
-            UIUtils.setDragDropListener(cardView,this,c);
-
+        for (Card c : playerHand) {
+            View cardView = UIUtils.createViewCard(getLayoutInflater(), handContainer, c, this);
+            UIUtils.setDragDropListener(cardView, this, c);
             handContainer.addView(cardView);
         }
     }
 
-    private void drawCardReloadUI(){
-        int randomIndex = rand.nextInt(playerDeck.size());
+    // ========================================================
+    // אנימציית טקסט מרחף במקום טואסטים (משתלב מדהים במשחק!)
+    // ========================================================
+    private void showFloatingText(String message, boolean isBanner) {
+        ViewGroup root = findViewById(android.R.id.content);
+        if (root == null) return;
 
-        // 2. Use .get() instead of [index]
-        playerHand.add(playerDeck.get(randomIndex).cloneCard());
+        TextView floatingText = new TextView(this);
+        floatingText.setText(message);
+        // צבע זהב סטייל Fallout NV עם צללית כבדה
+        floatingText.setTextColor(android.graphics.Color.parseColor("#FFD700"));
+        floatingText.setTextSize(isBanner ? 50f : 28f); // באנר סיום ענק, הודעה רגילה קטנה יותר
+        floatingText.setTypeface(null, android.graphics.Typeface.BOLD);
+        floatingText.setGravity(Gravity.CENTER);
+        floatingText.setShadowLayer(8f, 4f, 4f, android.graphics.Color.BLACK);
 
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        params.gravity = Gravity.CENTER;
+        floatingText.setLayoutParams(params);
 
+        root.addView(floatingText);
 
-        handContainer.removeAllViews();
-
-        for (Card c : playerHand) {//יישום UI
-        // Inflate the complex layout instead of a simple ImageView
-        View cardView = UIUtils.createViewCard(getLayoutInflater(),  handContainer,  c,   this);
-        UIUtils.setDragDropListener(cardView,this,c);
-
-        handContainer.addView(cardView);
+        if (isBanner) {
+            // אנימציית באנר סיום משחק (נוחת מלמעלה בבום)
+            floatingText.setScaleX(3f);
+            floatingText.setScaleY(3f);
+            floatingText.setAlpha(0f);
+            floatingText.animate()
+                    .scaleX(1f).scaleY(1f).alpha(1f)
+                    .setDuration(600)
+                    .setInterpolator(new OvershootInterpolator())
+                    .start();
+        } else {
+            // אנימציית טקסט אירוע רגיל (מרחף ונעלם)
+            floatingText.setTranslationY(100f);
+            floatingText.setAlpha(0f);
+            floatingText.animate()
+                    .translationY(-50f).alpha(1f)
+                    .setDuration(400)
+                    .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                    .withEndAction(() -> {
+                        floatingText.animate()
+                                .translationY(-150f).alpha(0f)
+                                .setStartDelay(1200) // נשאר על המסך שנייה וקצת
+                                .setDuration(400)
+                                .withEndAction(() -> root.removeView(floatingText))
+                                .start();
+                    }).start();
+        }
     }
+
+    private void animateCardPulse(View cardView) {
+        if (cardView == null) return;
+        cardView.animate()
+                .scaleX(1.2f).scaleY(1.2f)
+                .setDuration(150)
+                .withEndAction(() -> {
+                    cardView.animate()
+                            .scaleX(1.0f).scaleY(1.0f)
+                            .setDuration(150)
+                            .start();
+                }).start();
     }
 
     private void setupDragAndDrop() {
@@ -203,8 +231,7 @@ public class GameActivity extends AppCompatActivity {
 
             laneView.setOnDragListener((v, event) -> {
                 switch (event.getAction()) {
-                    case DragEvent.ACTION_DRAG_STARTED:
-                        return true;
+                    case DragEvent.ACTION_DRAG_STARTED: return true;
                     case DragEvent.ACTION_DRAG_ENTERED:
                         v.setBackgroundColor(0x44FFFFFF);
                         return true;
@@ -213,41 +240,42 @@ public class GameActivity extends AppCompatActivity {
                         return true;
                     case DragEvent.ACTION_DROP:
                         v.setBackgroundColor(android.graphics.Color.TRANSPARENT);
-                        if(currentDraggingCard == null) return false;
-                        if(currentDraggingCard instanceof FighterCard){
+                        if (currentDraggingCard == null) return false;
+
+                        if (currentDraggingCard instanceof FighterCard) {
                             FighterCard fc = (FighterCard) currentDraggingCard;
 
-                        if ( playerLanes.get(laneIdx) == null) {
-                            playerLanes.set(laneIdx, fc);
-                            playerHand.remove(fc);
-                            money-=fc.getCost();
-                            txtMoney.setText("YOUR Money: "+String.valueOf(money));
-                            CardDTO dto = new CardDTO(
-                                    fc.getId(),
-                                    "FIGHTER",
-                                    fc.getHp(),
-                                    fc.getAtk(),
-                                    new ArrayList<>()
-                            );
-                            actionSequence.add(new PlayedActionDTO(String.valueOf(laneIdx), dto));
+                            if (playerLanes.get(laneIdx) == null) {
+                                playerLanes.set(laneIdx, fc);
+                                playerHand.remove(fc);
+                                money -= fc.getCost();
+                                txtMoney.setText("YOUR Money: " + money);
 
-                            //log("Placed " + currentDraggingCard.getName() + " in Lane " + laneIdx);
-                            refreshLaneUI();
-                            return true;
-                        }
-                        }
-                        else if(currentDraggingCard instanceof EffectCard){
+                                CardDTO dto = new CardDTO(fc.getId(), "FIGHTER", fc.getHp(), fc.getAtk(), new ArrayList<>());
+                                actionSequence.add(new PlayedActionDTO(String.valueOf(laneIdx), dto));
+
+                                refreshLaneUI();
+                                return true;
+                            }
+                        } else if (currentDraggingCard instanceof EffectCard) {
                             EffectCard ec = (EffectCard) currentDraggingCard;
-                            ec.applyEffect(playerLanes.get(laneIdx));
-                            money-=ec.getCost();
-                            txtMoney.setText("YOUR Money: "+String.valueOf(money));
-                            CardDTO dto = new CardDTO(
-                                    ec.getId(),
-                                    "EFFECT"
 
-                            );
+                            if ("slot_machine".equals(ec.getId())) {
+                                int cardsToDraw = ec.getEffectPayload().getValue();
+                                drawCards(cardsToDraw);
+                                // --- מפעילים את הפונקציה היפה שלנו במקום Toast ---
+                                showFloatingText("JACKPOT!\n+" + cardsToDraw + " CARDS", false);
+                            } else {
+                                ec.applyEffect(playerLanes.get(laneIdx));
+                            }
+
+                            playerHand.remove(ec);
+                            money -= ec.getCost();
+                            txtMoney.setText("YOUR Money: " + money);
+
+                            CardDTO dto = new CardDTO(ec.getId(), "EFFECT");
                             actionSequence.add(new PlayedActionDTO(String.valueOf(laneIdx), dto));
-                            //log("Placed " + currentDraggingCard.getName() + " in Lane " + laneIdx);
+
                             refreshLaneUI();
                             return true;
                         }
@@ -267,37 +295,24 @@ public class GameActivity extends AppCompatActivity {
         }
     }
 
-    public void setCurrentDraggingCard(Card currentDraggingCard) {
-        this.currentDraggingCard = currentDraggingCard;
-    }
+    public void setCurrentDraggingCard(Card currentDraggingCard) { this.currentDraggingCard = currentDraggingCard; }
 
     private void submitTurn() {
         if (turnSubmitted) return;
 
-        PlayedTurnDTO turnDto = new PlayedTurnDTO(
-                UserPrefsUtils.getEmail(this),
-                currentTurnNumber,
-                new ArrayList<>(actionSequence)
-        );
-
+        PlayedTurnDTO turnDto = new PlayedTurnDTO(UserPrefsUtils.getEmail(this), currentTurnNumber, new ArrayList<>(actionSequence));
         btnSendTurn.setEnabled(false);
-        //log("Sending turn " + currentTurnNumber + "...");
 
         FirebaseUtils.submitTurn(matchId, turnDto, success -> {
             runOnUiThread(() -> {
                 if (success) {
                     turnSubmitted = true;
-                    //log("Turn sent. Waiting for opponent...");
-
-                    // SYNC CHECK: If opponent already moved, start battle
                     if (pendingEnemyTurn != null && pendingEnemyTurn.getTurnNumber() == currentTurnNumber) {
-                        //log("Opponent was waiting! Commencing battle...");
                         processBattle(pendingEnemyTurn);
                     }
                 } else {
                     turnSubmitted = false;
                     btnSendTurn.setEnabled(true);
-                    //log("Send failed! Try again.");
                 }
             });
         });
@@ -315,31 +330,25 @@ public class GameActivity extends AppCompatActivity {
                 if (tNumObj == null) return;
 
                 int incomingTurnNum = ((Number) tNumObj).intValue();
-
-                // Only handle turns for the current round
                 if (incomingTurnNum != currentTurnNumber) return;
 
                 PlayedTurnDTO enemyTurn = new PlayedTurnDTO();
                 enemyTurn.setPlayerId(sender);
                 enemyTurn.setTurnNumber(incomingTurnNum);
 
-                // Parsing Logic
                 List<Map<String, Object>> actionsMapList = (List<Map<String, Object>>) turnData.get("actions");
                 List<PlayedActionDTO> actionDtoList = new ArrayList<>();
 
                 if (actionsMapList != null) {
-
                     for (Map<String, Object> actionMap : actionsMapList) {
-
                         PlayedActionDTO actionDto = new PlayedActionDTO();
                         actionDto.setLaneId((String) actionMap.get("laneId"));
                         Map<String, Object> cardMap = (Map<String, Object>) actionMap.get("card");
-                        if (cardMap != null) {
 
+                        if (cardMap != null) {
                             CardDTO cardDto = new CardDTO();
                             cardDto.setCardId((String) cardMap.get("cardId"));
                             cardDto.setCardType((String) cardMap.get("type"));
-
                             cardDto.setHp(((Number) cardMap.getOrDefault("hp", 0)).intValue());
                             cardDto.setAtk(((Number) cardMap.getOrDefault("atk", 0)).intValue());
                             actionDto.setCard(cardDto);
@@ -349,39 +358,26 @@ public class GameActivity extends AppCompatActivity {
                 }
                 enemyTurn.setActions(actionDtoList);
 
-                // SYNC CHECK: Store data and check if we have submitted our turn
                 runOnUiThread(() -> {
                     pendingEnemyTurn = enemyTurn;
-
-
-
-                    if (turnSubmitted) {
-                        //log("Both ready! Commencing battle...");
-                        processBattle(pendingEnemyTurn);
-                    } else {
-                        //log("Waiting for your move...");
-                    }
+                    if (turnSubmitted) processBattle(pendingEnemyTurn);
                 });
 
-            } catch (Exception e) {
-                //log("Parsing Error: " + e.getMessage());
-            }
+            } catch (Exception e) { Log.e(TAG, "Parsing Error: " + e.getMessage()); }
         });
     }
 
-    private void processBattle(PlayedTurnDTO enemyTurn)/** (2)**/ {
+    private void processBattle(PlayedTurnDTO enemyTurn) {
         if (enemyTurn.getActions() == null || enemyTurn.getActions().isEmpty()) {
-            finalizeBattle(); // No actions, go straight to math
-        }
-        else {
+            finalizeBattle();
+        } else {
             List<PlayedActionDTO> actions = enemyTurn.getActions();
             processActionStep(actions, 0);
         }
-        drawCardReloadUI();//קח קלף חדש
+        drawCards(1);
     }
 
-    private void processActionStep(List<PlayedActionDTO> actions, int index) /** (2)**/{//פעולה רקורסיבית
-        // Base case: All actions shown, now run the math and UI refresh
+    private void processActionStep(List<PlayedActionDTO> actions, int index) {
         if (index >= actions.size()) {
             finalizeBattle();
             return;
@@ -392,93 +388,89 @@ public class GameActivity extends AppCompatActivity {
         CardDTO c = action.getCard();
 
         if (Objects.equals(c.getType(), "FIGHTER")) {
-            // Update data and refresh UI immediately
             enemyLanes.set(lane, new FighterCard(c.getCardId(), "Enemy", c.getHp(), c.getAtk(), new ArrayList<>()));
             refreshLaneUI();
-
-            // Wait 200ms then move to next action
             new Handler(Looper.getMainLooper()).postDelayed(() -> processActionStep(actions, index + 1), 200);
 
         } else if (Objects.equals(c.getType(), "EFFECT")) {
-            // Trigger the fancy animation
             showEffectAnimation(c, lane, () -> {
-                // This callback runs AFTER the animation finishes
                 CardDatabaseHelper dbHelper = new CardDatabaseHelper(this);
                 EffectCard ec = (EffectCard)dbHelper.getCardById(c.getCardId());
-                ec.applyEffect(enemyLanes.get(lane));
+
+                if (!"slot_machine".equals(c.getCardId())) {
+                    ec.applyEffect(enemyLanes.get(lane));
+                }
+
                 refreshLaneUI();
                 processActionStep(actions, index + 1);
             });
         }
     }
 
-    private void showEffectAnimation(CardDTO card, int laneId, Runnable onComplete)/** (2)**/ {
-        // 1. Get the Lane (The actual container for that specific slot)
+    private void showEffectAnimation(CardDTO card, int laneId, Runnable onComplete) {
         ViewGroup laneView = (ViewGroup) enemyLaneContainer.getChildAt(laneId);
+        if (laneView == null) { onComplete.run(); return; }
 
-        if (laneView == null) {
-            onComplete.run();
-            return;
-        }
+        laneView.setClipChildren(false); laneView.setClipToPadding(false);
+        ((ViewGroup)laneView.getParent()).setClipChildren(false); ((ViewGroup)laneView.getParent()).setClipToPadding(false);
 
-        // 2. CRITICAL: Disable clipping so the card can "float" outside the lane boundaries
-        laneView.setClipChildren(false);
-        laneView.setClipToPadding(false);
-        ((ViewGroup)laneView.getParent()).setClipChildren(false);
-        ((ViewGroup)laneView.getParent()).setClipToPadding(false);
-
-        // 3. Create the Card View
         ImageView effectView = new ImageView(this);
         effectView.setImageResource(UIUtils.getImageForCard(this, card.getCardId()));
 
-        // Size it relative to the lane or fixed DP
         int width = (int) (110 * getResources().getDisplayMetrics().density);
         int height = (int) (150 * getResources().getDisplayMetrics().density);
 
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(width, height);
-        params.gravity = Gravity.CENTER; // This handles RTL/LTR automatically!
+        params.gravity = Gravity.CENTER;
         effectView.setLayoutParams(params);
 
-        // 4. Reset for animation
-        effectView.setScaleX(0f);
-        effectView.setScaleY(0f);
-        effectView.setAlpha(0f);
-        effectView.setElevation(10f); // Make sure it sits "above" other cards
+        effectView.setScaleX(0f); effectView.setScaleY(0f); effectView.setAlpha(0f); effectView.setElevation(10f);
 
         laneView.addView(effectView);
 
-        // 5. Animation
         effectView.animate()
                 .scaleX(1.4f).scaleY(1.4f).alpha(1f)
                 .setDuration(450)
                 .setInterpolator(new OvershootInterpolator())
                 .withEndAction(() -> {
                     effectView.animate()
-                            .alpha(0f)
-                            .scaleX(0.8f).scaleY(0.8f)
-                            .setStartDelay(600)
-                            .setDuration(300)
-                            .withEndAction(() -> {
-                                laneView.removeView(effectView);
-                                onComplete.run();
-                            });
+                            .alpha(0f).scaleX(0.8f).scaleY(0.8f)
+                            .setStartDelay(600).setDuration(300)
+                            .withEndAction(() -> { laneView.removeView(effectView); onComplete.run(); });
                 });
     }
 
     private void finalizeBattle() {
-        // Calculate the actual math results
+        BattlefieldUtils.BattleEventsListener drawListener = (hero, amount) -> {
+            if (hero == playerHero) {
+                runOnUiThread(() -> drawCards(amount));
+            }
+        };
+
         if(isStartingPlayer) {
-            BattlefieldUtils.fieldBattle(playerLanes, enemyLanes, playerHero, enemyHero);
+            BattlefieldUtils.fieldBattle(playerLanes, enemyLanes, playerHero, enemyHero, drawListener);
+        } else {
+            BattlefieldUtils.fieldBattle(enemyLanes, playerLanes, enemyHero, playerHero, drawListener);
         }
-        else{
-            BattlefieldUtils.fieldBattle(enemyLanes, playerLanes, enemyHero, playerHero);
-        }
-
-
 
         runOnUiThread(() -> {
             refreshLaneUI();
             updateHeroUI();
+
+            int mrHouseCards = 0;
+            for (int i = 0; i < BattlefieldUtils.NUM_LANES; i++) {
+                FighterCard fc = playerLanes.get(i);
+                if (fc != null && "mr_house".equals(fc.getId()) && !fc.isDead()) {
+                    mrHouseCards++;
+                    View laneView = playerLaneContainer.getChildAt(i);
+                    animateCardPulse(laneView);
+                }
+            }
+            if (mrHouseCards > 0) {
+                drawCards(mrHouseCards);
+                // --- מפעילים את הפונקציה היפה שלנו במקום Toast ---
+                showFloatingText("THE HOUSE ALWAYS WINS!\n+" + mrHouseCards + " CARDS", false);
+            }
 
             currentTurnNumber++;
             money = currentTurnNumber;
@@ -494,10 +486,8 @@ public class GameActivity extends AppCompatActivity {
 
     private void refreshLaneUI() {
         for (int i = 0; i < BattlefieldUtils.NUM_LANES; i++) {
-            // Find the parent layouts for the lanes
             View pLaneView = playerLaneContainer.getChildAt(i);
             View eLaneView = enemyLaneContainer.getChildAt(i);
-
             updateLaneUI(pLaneView, playerLanes.get(i));
             updateLaneUI(eLaneView, enemyLanes.get(i));
         }
@@ -513,13 +503,10 @@ public class GameActivity extends AppCompatActivity {
             art.setImageResource(resId);
             atkText.setText(String.valueOf(card.getAtk()));
             hpText.setText(String.valueOf(card.getHp()));
-
-            atkText.setVisibility(View.VISIBLE);
-            hpText.setVisibility(View.VISIBLE);
+            atkText.setVisibility(View.VISIBLE); hpText.setVisibility(View.VISIBLE);
         } else {
             art.setImageResource(android.R.color.transparent);
-            atkText.setVisibility(View.INVISIBLE);
-            hpText.setVisibility(View.INVISIBLE);
+            atkText.setVisibility(View.INVISIBLE); hpText.setVisibility(View.INVISIBLE);
         }
     }
 
@@ -530,69 +517,48 @@ public class GameActivity extends AppCompatActivity {
 
     private void checkWinCondition() {
         if (playerHero.getHealth() <= 0 || enemyHero.getHealth() <= 0) {
-            boolean win =playerHero.getHealth() > enemyHero.getHealth();
+            boolean win = playerHero.getHealth() > enemyHero.getHealth();
             long rating = (win) ? 100 : -100;
-            String result = (win) ? "VICTORY!" : "DEFEAT!";//אם שווים שניהם מפסידים
-            //("GAME OVER: " + result);
+            String result = (win) ? "VICTORY!" : "DEFEAT!";
+
             btnSendTurn.setEnabled(false);
-            Toast.makeText(this, result, Toast.LENGTH_LONG).show();
+
+            // --- באנר סיום משחק בולט במקום Toast ---
+            showFloatingText(result, true);
 
             FirebaseUtils.updatePlayerRating(rating);
-
-            // Create a delay of 3000 milliseconds (3 seconds)
-            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    quitGame();
-                }
-            }, 3000);
+            // הגדלתי טיפה את ההמתנה כדי שיראו את האנימציה בכיף לפני שזה יוצא
+            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> quitGame(), 4000);
         }
     }
-
-
 
     private void quitGame() {
         if (turnListener != null) turnListener.remove();
         FirebaseUtils.deleteMatch(matchId);
         Intent intent = new Intent(this, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        if (turnListener != null) turnListener.remove();
         if (matchDeleteListener != null) matchDeleteListener.remove();
         startActivity(intent);
         finish();
     }
 
-
-    private void startWatchingForLeavers() {// TODO לטפל בסיום משחק ומחיקתו (כנראה בסימון המשחק כגמור ומחיקתו רק לאחר חצי דקה)
+    private void startWatchingForLeavers() {
         if (matchId == null) return;
-
-        Log.d("MATCH_DEBUG", "GameActivity: Watching match: " + matchId);
-
         matchDeleteListener = FirebaseFirestore.getInstance()
-                .collection("matches")
-                .document(matchId)
+                .collection("matches").document(matchId)
                 .addSnapshotListener((snapshot, e) -> {
-                    // If snapshot exists but then becomes null/false, the match was deleted
                     if (snapshot != null && !snapshot.exists()) {
-                        Log.d("MATCH_DEBUG", "OPPONENT LEFT! Match deleted from DB.");
 
-                        // 1. Show the win message
-                        Toast.makeText(this, "Enemy player left, you win!", Toast.LENGTH_LONG).show();
+                        // --- באנר סיום משחק במקום Toast ---
+                        showFloatingText("ENEMY RETREATED!\nVICTORY!", true);
 
-                        // 2. Stop listening (important to prevent loops)
                         if (matchDeleteListener != null) matchDeleteListener.remove();
-                        btnSendTurn.setEnabled(false);
-                        btnBack.setEnabled(false);
+                        btnSendTurn.setEnabled(false); btnBack.setEnabled(false);
                         FirebaseUtils.updatePlayerRating(100);
-
-                        // 3. Wait 3 seconds then quit
-                        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-                            quitGame();
-                        }, 3000);
+                        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> quitGame(), 4000);
                     }
                 });
     }
-
 
     @Override
     protected void onDestroy() {
@@ -601,7 +567,5 @@ public class GameActivity extends AppCompatActivity {
         if (matchDeleteListener != null) matchDeleteListener.remove();
     }
 
-    public int getMoney() {
-        return money;
-    }
+    public int getMoney() { return money; }
 }
