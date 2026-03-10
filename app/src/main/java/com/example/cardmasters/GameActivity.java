@@ -17,6 +17,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
@@ -37,6 +38,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -46,7 +48,7 @@ public class GameActivity extends AppCompatActivity {
 
     private static final String TAG = "GameActivity";
 
-    private TextView txtMatchId, txtOpponentHero, txtMyHero, txtMoney;
+    private TextView txtMatchId, txtOpponentHero, txtMyHero, txtMoney, txtTimer;
     private LinearLayout playerLaneContainer, enemyLaneContainer, handContainer;
     private Button btnSendTurn, btnBack;
     private ListenerRegistration matchDeleteListener;
@@ -61,7 +63,16 @@ public class GameActivity extends AppCompatActivity {
     private int currentTurnNumber = 1;
     private int money = currentTurnNumber;
     private boolean turnSubmitted = false;
-    private PlayedTurnDTO pendingEnemyTurn = null;
+
+    // --- טיימרים וסנכרון ---
+    private android.os.CountDownTimer turnTimer;
+    private android.os.CountDownTimer graceTimer;
+    private static final long TURN_DURATION = 25000;
+    private static final long GRACE_PERIOD = 10000;
+
+    private final Map<Integer, PlayedTurnDTO> opponentTurnsMap = new HashMap<>();
+    private boolean isAnimating = false;
+
     private final List<PlayedActionDTO> actionSequence = new ArrayList<>();
     private ListenerRegistration turnListener;
     private Card currentDraggingCard = null;
@@ -97,7 +108,7 @@ public class GameActivity extends AppCompatActivity {
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
-            public void handleOnBackPressed() { quitGame(); }
+            public void handleOnBackPressed() { showQuitConfirmationDialog(); }
         });
     }
 
@@ -106,6 +117,7 @@ public class GameActivity extends AppCompatActivity {
         txtOpponentHero = findViewById(R.id.txtOpponentHero);
         txtMyHero = findViewById(R.id.txtMyHero);
         txtMoney = findViewById(R.id.txtMoney);
+        txtTimer = findViewById(R.id.txtTimer);
         playerLaneContainer = findViewById(R.id.player_lane_container);
         enemyLaneContainer = findViewById(R.id.enemy_lane_container);
         handContainer = findViewById(R.id.hand_container);
@@ -113,8 +125,115 @@ public class GameActivity extends AppCompatActivity {
         btnBack = findViewById(R.id.btn_back_to_main);
 
         txtMatchId.setText("Match ID: " + matchId);
+
+        // עיצוב כפתור היציאה
+        android.graphics.drawable.GradientDrawable gdQuit = new android.graphics.drawable.GradientDrawable();
+        gdQuit.setColor(android.graphics.Color.parseColor("#C0392B"));
+        gdQuit.setCornerRadius(24f);
+        btnBack.setBackground(gdQuit);
+        btnBack.setTextColor(android.graphics.Color.WHITE);
+
+        // עיצוב השעון
+        android.graphics.drawable.GradientDrawable timerBg = new android.graphics.drawable.GradientDrawable();
+        timerBg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+        timerBg.setColor(android.graphics.Color.parseColor("#34495E"));
+        timerBg.setStroke(2, android.graphics.Color.parseColor("#7F8C8D"));
+        txtTimer.setBackground(timerBg);
+
+        setEndTurnEnabled(true);
+
         btnSendTurn.setOnClickListener(v -> submitTurn());
-        btnBack.setOnClickListener(v -> quitGame());
+        btnBack.setOnClickListener(v -> showQuitConfirmationDialog());
+    }
+
+    private void setEndTurnEnabled(boolean isEnabled) {
+        btnSendTurn.setEnabled(isEnabled);
+        android.graphics.drawable.GradientDrawable gd = new android.graphics.drawable.GradientDrawable();
+        gd.setCornerRadius(24f);
+
+        if (isEnabled) {
+            gd.setColor(android.graphics.Color.parseColor("#D4AF37"));
+            gd.setStroke(4, android.graphics.Color.parseColor("#B8860B"));
+            btnSendTurn.setTextColor(android.graphics.Color.BLACK);
+        } else {
+            gd.setColor(android.graphics.Color.parseColor("#2C3E50"));
+            gd.setStroke(4, android.graphics.Color.parseColor("#1A252F"));
+            btnSendTurn.setTextColor(android.graphics.Color.parseColor("#7F8C8D"));
+        }
+        btnSendTurn.setBackground(gd);
+    }
+
+    private void showQuitConfirmationDialog() {
+        android.app.AlertDialog dialog = new android.app.AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
+                .setTitle("Retreat from Battle?")
+                .setMessage("Are you sure you want to quit? You will lose the match and rating points!")
+                .setPositiveButton("Retreat", (d, which) -> quitGame())
+                .setNegativeButton("Cancel", null)
+                .show();
+
+        dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setTextColor(android.graphics.Color.parseColor("#E74C3C"));
+        dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE).setTextColor(android.graphics.Color.parseColor("#BDC3C7"));
+    }
+
+    // ==========================================
+    // מנגנון הטיימרים
+    // ==========================================
+
+    private void startTurnTimer() {
+        cancelTimers();
+        txtTimer.setTextColor(android.graphics.Color.WHITE);
+
+        turnTimer = new android.os.CountDownTimer(TURN_DURATION, 1000) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+                int secondsLeft = (int) (millisUntilFinished / 1000);
+                txtTimer.setText(String.valueOf(secondsLeft));
+
+                if (secondsLeft <= 5) {
+                    txtTimer.setTextColor(android.graphics.Color.parseColor("#E74C3C"));
+                }
+            }
+
+            @Override
+            public void onFinish() {
+                txtTimer.setText("0");
+                if (!turnSubmitted) {
+                    submitTurn();
+                }
+                startGraceTimer();
+            }
+        }.start();
+    }
+
+    private void startGraceTimer() {
+        graceTimer = new android.os.CountDownTimer(GRACE_PERIOD, 1000) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+                txtTimer.setText("...");
+            }
+
+            @Override
+            public void onFinish() {
+                if (!isAnimating) {
+                    declareAutoWin();
+                }
+            }
+        }.start();
+    }
+
+    private void cancelTimers() {
+        if (turnTimer != null) turnTimer.cancel();
+        if (graceTimer != null) graceTimer.cancel();
+        txtTimer.setText("25");
+    }
+
+    private void declareAutoWin() {
+        if (playerHero.getHealth() <= 0) return;
+        cancelTimers();
+        setEndTurnEnabled(false);
+        showFloatingText("OPPONENT TIMED OUT!\nVICTORY!", true);
+        FirebaseUtils.updatePlayerRating(100);
+        new Handler(Looper.getMainLooper()).postDelayed(this::quitGame, 4000);
     }
 
     private void initGameState() {
@@ -134,9 +253,8 @@ public class GameActivity extends AppCompatActivity {
 
         drawCards(BattlefieldUtils.NUM_STARTING_CARDS);
         updateHeroUI();
+        startTurnTimer();
     }
-
-    public boolean getTurnSubmitted() { return turnSubmitted; }
 
     private void drawCards(int amount) {
         if (playerDeck == null || playerDeck.isEmpty()) return;
@@ -157,18 +275,14 @@ public class GameActivity extends AppCompatActivity {
         }
     }
 
-    // ========================================================
-    // אנימציית טקסט מרחף במקום טואסטים (משתלב מדהים במשחק!)
-    // ========================================================
     private void showFloatingText(String message, boolean isBanner) {
         ViewGroup root = findViewById(android.R.id.content);
         if (root == null) return;
 
         TextView floatingText = new TextView(this);
         floatingText.setText(message);
-        // צבע זהב סטייל Fallout NV עם צללית כבדה
         floatingText.setTextColor(android.graphics.Color.parseColor("#FFD700"));
-        floatingText.setTextSize(isBanner ? 50f : 28f); // באנר סיום ענק, הודעה רגילה קטנה יותר
+        floatingText.setTextSize(isBanner ? 50f : 28f);
         floatingText.setTypeface(null, android.graphics.Typeface.BOLD);
         floatingText.setGravity(Gravity.CENTER);
         floatingText.setShadowLayer(8f, 4f, 4f, android.graphics.Color.BLACK);
@@ -183,7 +297,6 @@ public class GameActivity extends AppCompatActivity {
         root.addView(floatingText);
 
         if (isBanner) {
-            // אנימציית באנר סיום משחק (נוחת מלמעלה בבום)
             floatingText.setScaleX(3f);
             floatingText.setScaleY(3f);
             floatingText.setAlpha(0f);
@@ -193,7 +306,6 @@ public class GameActivity extends AppCompatActivity {
                     .setInterpolator(new OvershootInterpolator())
                     .start();
         } else {
-            // אנימציית טקסט אירוע רגיל (מרחף ונעלם)
             floatingText.setTranslationY(100f);
             floatingText.setAlpha(0f);
             floatingText.animate()
@@ -203,7 +315,7 @@ public class GameActivity extends AppCompatActivity {
                     .withEndAction(() -> {
                         floatingText.animate()
                                 .translationY(-150f).alpha(0f)
-                                .setStartDelay(1200) // נשאר על המסך שנייה וקצת
+                                .setStartDelay(1200)
                                 .setDuration(400)
                                 .withEndAction(() -> root.removeView(floatingText))
                                 .start();
@@ -240,7 +352,9 @@ public class GameActivity extends AppCompatActivity {
                         return true;
                     case DragEvent.ACTION_DROP:
                         v.setBackgroundColor(android.graphics.Color.TRANSPARENT);
-                        if (currentDraggingCard == null) return false;
+
+                        // הגנה מגרירה אחרי סיום תור
+                        if (currentDraggingCard == null || turnSubmitted) return false;
 
                         if (currentDraggingCard instanceof FighterCard) {
                             FighterCard fc = (FighterCard) currentDraggingCard;
@@ -249,7 +363,7 @@ public class GameActivity extends AppCompatActivity {
                                 playerLanes.set(laneIdx, fc);
                                 playerHand.remove(fc);
                                 money -= fc.getCost();
-                                txtMoney.setText("YOUR Money: " + money);
+                                txtMoney.setText("MONEY: " + money);
 
                                 CardDTO dto = new CardDTO(fc.getId(), "FIGHTER", fc.getHp(), fc.getAtk(), new ArrayList<>());
                                 actionSequence.add(new PlayedActionDTO(String.valueOf(laneIdx), dto));
@@ -263,7 +377,6 @@ public class GameActivity extends AppCompatActivity {
                             if ("slot_machine".equals(ec.getId())) {
                                 int cardsToDraw = ec.getEffectPayload().getValue();
                                 drawCards(cardsToDraw);
-                                // --- מפעילים את הפונקציה היפה שלנו במקום Toast ---
                                 showFloatingText("JACKPOT!\n+" + cardsToDraw + " CARDS", false);
                             } else {
                                 ec.applyEffect(playerLanes.get(laneIdx));
@@ -271,7 +384,7 @@ public class GameActivity extends AppCompatActivity {
 
                             playerHand.remove(ec);
                             money -= ec.getCost();
-                            txtMoney.setText("YOUR Money: " + money);
+                            txtMoney.setText("MONEY: " + money);
 
                             CardDTO dto = new CardDTO(ec.getId(), "EFFECT");
                             actionSequence.add(new PlayedActionDTO(String.valueOf(laneIdx), dto));
@@ -297,22 +410,23 @@ public class GameActivity extends AppCompatActivity {
 
     public void setCurrentDraggingCard(Card currentDraggingCard) { this.currentDraggingCard = currentDraggingCard; }
 
+
     private void submitTurn() {
         if (turnSubmitted) return;
 
+        turnSubmitted = true;
+        setEndTurnEnabled(false);
+
         PlayedTurnDTO turnDto = new PlayedTurnDTO(UserPrefsUtils.getEmail(this), currentTurnNumber, new ArrayList<>(actionSequence));
-        btnSendTurn.setEnabled(false);
 
         FirebaseUtils.submitTurn(matchId, turnDto, success -> {
             runOnUiThread(() -> {
                 if (success) {
-                    turnSubmitted = true;
-                    if (pendingEnemyTurn != null && pendingEnemyTurn.getTurnNumber() == currentTurnNumber) {
-                        processBattle(pendingEnemyTurn);
-                    }
+                    tryStartBattle();
                 } else {
                     turnSubmitted = false;
-                    btnSendTurn.setEnabled(true);
+                    setEndTurnEnabled(true);
+                    Toast.makeText(this, "Failed to send turn. Network issue?", Toast.LENGTH_SHORT).show();
                 }
             });
         });
@@ -330,7 +444,8 @@ public class GameActivity extends AppCompatActivity {
                 if (tNumObj == null) return;
 
                 int incomingTurnNum = ((Number) tNumObj).intValue();
-                if (incomingTurnNum != currentTurnNumber) return;
+
+                if (incomingTurnNum < currentTurnNumber) return;
 
                 PlayedTurnDTO enemyTurn = new PlayedTurnDTO();
                 enemyTurn.setPlayerId(sender);
@@ -359,12 +474,23 @@ public class GameActivity extends AppCompatActivity {
                 enemyTurn.setActions(actionDtoList);
 
                 runOnUiThread(() -> {
-                    pendingEnemyTurn = enemyTurn;
-                    if (turnSubmitted) processBattle(pendingEnemyTurn);
+                    opponentTurnsMap.put(incomingTurnNum, enemyTurn);
+                    tryStartBattle();
                 });
 
             } catch (Exception e) { Log.e(TAG, "Parsing Error: " + e.getMessage()); }
         });
+    }
+
+    private void tryStartBattle() {
+        if (isAnimating) return;
+
+        if (turnSubmitted && opponentTurnsMap.containsKey(currentTurnNumber)) {
+            isAnimating = true;
+            cancelTimers(); // עוצרים את הטיימרים במהלך הקרב
+            PlayedTurnDTO enemyTurn = opponentTurnsMap.get(currentTurnNumber);
+            processBattle(enemyTurn);
+        }
     }
 
     private void processBattle(PlayedTurnDTO enemyTurn) {
@@ -377,6 +503,7 @@ public class GameActivity extends AppCompatActivity {
         drawCards(1);
     }
 
+    // התיקון לאנימציות שלא עוצרות את הלוגיקה (Barrage)
     private void processActionStep(List<PlayedActionDTO> actions, int index) {
         if (index >= actions.size()) {
             finalizeBattle();
@@ -390,26 +517,25 @@ public class GameActivity extends AppCompatActivity {
         if (Objects.equals(c.getType(), "FIGHTER")) {
             enemyLanes.set(lane, new FighterCard(c.getCardId(), "Enemy", c.getHp(), c.getAtk(), new ArrayList<>()));
             refreshLaneUI();
-            new Handler(Looper.getMainLooper()).postDelayed(() -> processActionStep(actions, index + 1), 200);
+            new Handler(Looper.getMainLooper()).postDelayed(() -> processActionStep(actions, index + 1), 300);
 
         } else if (Objects.equals(c.getType(), "EFFECT")) {
-            showEffectAnimation(c, lane, () -> {
-                CardDatabaseHelper dbHelper = new CardDatabaseHelper(this);
-                EffectCard ec = (EffectCard)dbHelper.getCardById(c.getCardId());
+            CardDatabaseHelper dbHelper = new CardDatabaseHelper(this);
+            EffectCard ec = (EffectCard)dbHelper.getCardById(c.getCardId());
 
-                if (!"slot_machine".equals(c.getCardId())) {
-                    ec.applyEffect(enemyLanes.get(lane));
-                }
+            if (!"slot_machine".equals(c.getCardId())) {
+                ec.applyEffect(enemyLanes.get(lane));
+            }
+            refreshLaneUI();
 
-                refreshLaneUI();
-                processActionStep(actions, index + 1);
-            });
+            showEffectAnimation(c, lane);
+            new Handler(Looper.getMainLooper()).postDelayed(() -> processActionStep(actions, index + 1), 300);
         }
     }
 
-    private void showEffectAnimation(CardDTO card, int laneId, Runnable onComplete) {
+    private void showEffectAnimation(CardDTO card, int laneId) {
         ViewGroup laneView = (ViewGroup) enemyLaneContainer.getChildAt(laneId);
-        if (laneView == null) { onComplete.run(); return; }
+        if (laneView == null) return;
 
         laneView.setClipChildren(false); laneView.setClipToPadding(false);
         ((ViewGroup)laneView.getParent()).setClipChildren(false); ((ViewGroup)laneView.getParent()).setClipToPadding(false);
@@ -417,8 +543,8 @@ public class GameActivity extends AppCompatActivity {
         ImageView effectView = new ImageView(this);
         effectView.setImageResource(UIUtils.getImageForCard(this, card.getCardId()));
 
-        int width = (int) (110 * getResources().getDisplayMetrics().density);
-        int height = (int) (150 * getResources().getDisplayMetrics().density);
+        int width = (int) (140 * getResources().getDisplayMetrics().density);
+        int height = (int) (190 * getResources().getDisplayMetrics().density);
 
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(width, height);
         params.gravity = Gravity.CENTER;
@@ -435,8 +561,9 @@ public class GameActivity extends AppCompatActivity {
                 .withEndAction(() -> {
                     effectView.animate()
                             .alpha(0f).scaleX(0.8f).scaleY(0.8f)
-                            .setStartDelay(600).setDuration(300)
-                            .withEndAction(() -> { laneView.removeView(effectView); onComplete.run(); });
+                            .setStartDelay(300)
+                            .setDuration(300)
+                            .withEndAction(() -> laneView.removeView(effectView));
                 });
     }
 
@@ -468,19 +595,24 @@ public class GameActivity extends AppCompatActivity {
             }
             if (mrHouseCards > 0) {
                 drawCards(mrHouseCards);
-                // --- מפעילים את הפונקציה היפה שלנו במקום Toast ---
                 showFloatingText("THE HOUSE ALWAYS WINS!\n+" + mrHouseCards + " CARDS", false);
             }
 
             currentTurnNumber++;
             money = currentTurnNumber;
             turnSubmitted = false;
-            pendingEnemyTurn = null;
             actionSequence.clear();
 
-            btnSendTurn.setEnabled(true);
+            setEndTurnEnabled(true);
             checkWinCondition();
-            txtMoney.setText("YOUR Money: " + money);
+            txtMoney.setText("MONEY: " + money);
+
+            isAnimating = false;
+
+            // מפעילים את הטיימר מחדש רק אם המשחק עדיין לא נגמר
+            if (playerHero.getHealth() > 0 && enemyHero.getHealth() > 0) {
+                startTurnTimer();
+            }
         });
     }
 
@@ -517,22 +649,22 @@ public class GameActivity extends AppCompatActivity {
 
     private void checkWinCondition() {
         if (playerHero.getHealth() <= 0 || enemyHero.getHealth() <= 0) {
+            cancelTimers(); // מוודא שהטיימרים מפסיקים כשהמשחק נגמר
             boolean win = playerHero.getHealth() > enemyHero.getHealth();
             long rating = (win) ? 100 : -100;
             String result = (win) ? "VICTORY!" : "DEFEAT!";
 
-            btnSendTurn.setEnabled(false);
+            setEndTurnEnabled(false);
 
-            // --- באנר סיום משחק בולט במקום Toast ---
             showFloatingText(result, true);
 
             FirebaseUtils.updatePlayerRating(rating);
-            // הגדלתי טיפה את ההמתנה כדי שיראו את האנימציה בכיף לפני שזה יוצא
             new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> quitGame(), 4000);
         }
     }
 
     private void quitGame() {
+        cancelTimers();
         if (turnListener != null) turnListener.remove();
         FirebaseUtils.deleteMatch(matchId);
         Intent intent = new Intent(this, MainActivity.class);
@@ -548,12 +680,12 @@ public class GameActivity extends AppCompatActivity {
                 .collection("matches").document(matchId)
                 .addSnapshotListener((snapshot, e) -> {
                     if (snapshot != null && !snapshot.exists()) {
-
-                        // --- באנר סיום משחק במקום Toast ---
+                        cancelTimers();
                         showFloatingText("ENEMY RETREATED!\nVICTORY!", true);
 
                         if (matchDeleteListener != null) matchDeleteListener.remove();
-                        btnSendTurn.setEnabled(false); btnBack.setEnabled(false);
+                        setEndTurnEnabled(false);
+                        btnBack.setEnabled(false);
                         FirebaseUtils.updatePlayerRating(100);
                         new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> quitGame(), 4000);
                     }
@@ -563,9 +695,16 @@ public class GameActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        cancelTimers();
         if (turnListener != null) turnListener.remove();
         if (matchDeleteListener != null) matchDeleteListener.remove();
     }
 
-    public int getMoney() { return money; }
+    public boolean getTurnSubmitted() {
+        return turnSubmitted;
+    }
+    public int getMoney()
+    {
+        return money;
+    }
 }
