@@ -21,21 +21,12 @@ import com.example.cardmasters.utils.lootboxes_utils.AlarmUtils;
 public class MainActivity extends AppCompatActivity {
 
     // Buttons
-    ImageButton btnSettings, btnTasks, btnProfile, btnFriends;
+    ImageButton btnCredits, btnAbout, btnProfile, btnFriends;
     Button btnGame;
     ImageButton btnLootbox, btnCollection, btnLeaderboard;
 
     // Launcher for result
-    private final ActivityResultLauncher<Intent> lootboxLauncher =
-            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
-                    result -> {
-                        if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                            // Handle returned data here
-                            String reward = result.getData().getStringExtra("lootResult");
-                            // For now just log it or toast it
-                            android.widget.Toast.makeText(this, "Got: " + reward, android.widget.Toast.LENGTH_SHORT).show();
-                        }
-                    });
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,10 +45,10 @@ public class MainActivity extends AppCompatActivity {
         AlarmUtils.setupLootBoxAlarm(this, 10, 34);
 
         // Find views
-        btnSettings = findViewById(R.id.btn_settings);
-        btnTasks = findViewById(R.id.btn_tasks);
+        btnCredits = findViewById(R.id.btn_credits);
+        btnAbout = findViewById(R.id.btn_about);
         btnProfile = findViewById(R.id.btn_profile);
-        btnFriends = findViewById(R.id.btn_friends);
+
         btnGame = findViewById(R.id.btn_game);
         btnLootbox = findViewById(R.id.btn_lootbox);
         btnCollection = findViewById(R.id.btn_collection);
@@ -96,16 +87,22 @@ public class MainActivity extends AppCompatActivity {
                 finish();});
 
         btnLootbox.setOnClickListener(v -> {
-            Intent intent = new Intent(this, LootBoxActivity.class);
-            lootboxLauncher.launch(intent);
+            startActivity(new Intent(this, LootBoxActivity.class));
+
         });
 
         // === DIALOGS ===
-        btnSettings.setOnClickListener(v -> showCustomDialog("Settings"));//TODO יחסית בסוף להוסיף הגדרות צליל
-        btnTasks.setOnClickListener(v -> showCustomDialog("Tasks"));//TODO כמות יהלומים ולוטבוקסים userPrefsמשימות רנדומליות המעניקות פרסים, רושמות ב
+        btnCredits.setOnClickListener(v -> {
+            startActivity(new Intent(this, CreditsActivity.class));
+
+        });
+        btnAbout.setOnClickListener(v -> {
+            startActivity(new Intent(this, AboutActivity.class));
+
+        });
 
         btnLeaderboard.setOnClickListener(v -> LeaderboardAdapter.showLeaderboardDialog(this));
-        btnFriends.setOnClickListener(v -> showCustomDialog("Friends"));//TODO הצג את כל השחקנים, הצג את החברים למעלה
+
     }
 
     private void showErrorFloatingText(String message) {

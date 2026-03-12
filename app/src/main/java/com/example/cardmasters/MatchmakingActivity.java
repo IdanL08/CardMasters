@@ -104,7 +104,7 @@ public class MatchmakingActivity extends AppCompatActivity implements FirebaseUt
             );
         };
 
-        // הנה שורת הקסם שהייתה חסרה! זה מה שבאמת מפעיל את הטיימר:
+        //  זה מה שבאמת מפעיל את הטיימר:
         retryHandler.postDelayed(retryRunnable, randomDelay);
     }
 

@@ -311,7 +311,7 @@ public class FirebaseUtils {
         return getMatchDocument(matchId).get();
     }
 
-    public static void updateMatchAfterTurn(
+    /*public static void updateMatchAfterTurn(
             String matchId,
             String nextPlayerId
     ) {
@@ -322,7 +322,7 @@ public class FirebaseUtils {
 
         getMatchDocument(matchId).update(updates)
                 .addOnFailureListener(e -> Log.e(TAG, "Failed updating match: ", e));
-    }
+    }*/
 
     public static void declareWinner(String matchId, String winnerId) {
         getMatchDocument(matchId)
@@ -342,12 +342,12 @@ public class FirebaseUtils {
                 });
     }
 
-    public interface UsernameCallback {
+    /*public interface UsernameCallback {
         void onUsernameLoaded(String username);
         void onError(Exception e);
-    }
+    }*/
 
-    public static void getUsername(UsernameCallback callback) {
+    /*public static void getUsername(UsernameCallback callback) {
         FirebaseUser currentUser = auth.getCurrentUser();
         if (currentUser == null) {
             callback.onError(new Exception("User not logged in"));
@@ -366,7 +366,7 @@ public class FirebaseUtils {
                     }
                 })
                 .addOnFailureListener(callback::onError);
-    }
+    }*/
 
     public static FirebaseUser getCurrentUser() {
         return FirebaseAuth.getInstance().getCurrentUser();

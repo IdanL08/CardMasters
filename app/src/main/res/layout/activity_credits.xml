@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#121212"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:gravity="center_horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="קרדיטים ותודות"
+            android:textColor="#FFD700"
+            android:textSize="32sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="24dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="פיתוח וסיוע בינה מלאכותית"
+            android:textColor="#D4AF37"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"/>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="קוד, לוגיקה ואנימציית תיבת שלל: ChatGPT\nקוד, לוגיקה, אמנות קלפים ונכסים ויזואליים: Google Gemini"
+            android:textColor="#BDC3C7"
+            android:textSize="14sp"
+            android:layout_marginBottom="16dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="השראה ועולם המשחק"
+            android:textColor="#D4AF37"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"/>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="השראה למכניקת המשחק: PvZ Heroes\nעולם המשחק והסיפור: Fallout New Vegas (Obsidian Entertainment &amp; Bethesda Softworks)"
+            android:textColor="#BDC3C7"
+            android:textSize="14sp"
+            android:layout_marginBottom="16dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="נכסים ומשאבים חיצוניים"
+            android:textColor="#D4AF37"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"/>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="אייקונים לממשק המשתמש: https://www.flaticon.com/"
+            android:textColor="#BDC3C7"
+            android:textSize="14sp"
+            android:autoLink="web"
+            android:textColorLink="#FFD700"
+            android:layout_marginBottom="16dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="תשתית שרת (Backend)"
+            android:textColor="#D4AF37"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"/>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="מולטיפלייר ומסד נתונים: Google Firebase"
+            android:textColor="#BDC3C7"
+            android:textSize="14sp"
+            android:layout_marginBottom="16dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="תודות מיוחדות"
+            android:textColor="#D4AF37"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"/>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="תודה ענקית למורה שלי על ההכוונה, הסבלנות והידע שהפכו את הפרויקט הזה לאפשרי!"
+            android:textColor="#BDC3C7"
+            android:textSize="14sp"
+            android:layout_marginBottom="32dp"/>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_back_to_main"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="back to main"
+            android:textSize="16sp"
+            android:padding="16dp"
+            android:layout_margin="16dp"
+            android:layout_gravity="center"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/button_outline" />
+
+    </LinearLayout>
+</ScrollView>

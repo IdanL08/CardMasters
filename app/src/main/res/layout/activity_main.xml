@@ -32,14 +32,15 @@
                 android:contentDescription="Profile" />
 
             <ImageButton
-                android:id="@+id/btn_friends"
+                android:id="@+id/btn_leaderboard"
                 android:layout_width="@dimen/button_width_medium"
                 android:layout_height="@dimen/button_height_medium"
-                android:src="@drawable/ic_friends"
+                android:layout_weight="1"
+                android:src="@drawable/ic_leaderboard"
                 android:background="@drawable/button_outline"
                 android:scaleType="centerInside"
                 android:padding="12dp"
-                android:contentDescription="Friends" />
+                android:contentDescription="Leaderboard" />
         </LinearLayout>
 
         <!-- RIGHT STACK -->
@@ -51,20 +52,20 @@
             android:gravity="end">
 
             <ImageButton
-                android:id="@+id/btn_settings"
+                android:id="@+id/btn_credits"
                 android:layout_width="@dimen/button_width_medium"
                 android:layout_height="@dimen/button_height_medium"
-                android:src="@drawable/ic_settings"
+                android:src="@drawable/ic_credits"
                 android:background="@drawable/button_outline"
                 android:scaleType="centerInside"
                 android:padding="12dp"
                 android:contentDescription="Settings" />
 
             <ImageButton
-                android:id="@+id/btn_tasks"
+                android:id="@+id/btn_about"
                 android:layout_width="@dimen/button_width_medium"
                 android:layout_height="@dimen/button_height_medium"
-                android:src="@drawable/ic_tasks"
+                android:src="@drawable/ic_about"
                 android:background="@drawable/button_outline"
                 android:scaleType="centerInside"
                 android:padding="12dp"
@@ -97,7 +98,7 @@
         android:layout_width="match_parent"
         android:layout_height="@dimen/button_height_medium"
         android:orientation="horizontal"
-        android:weightSum="3">
+        android:weightSum="2">
 
         <ImageButton
             android:id="@+id/btn_lootbox"
@@ -121,16 +122,7 @@
             android:padding="12dp"
             android:contentDescription="Collection" />
 
-        <ImageButton
-            android:id="@+id/btn_leaderboard"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:src="@drawable/ic_leaderboard"
-            android:background="@drawable/button_outline"
-            android:scaleType="centerInside"
-            android:padding="12dp"
-            android:contentDescription="Leaderboard" />
+
     </LinearLayout>
 
 </LinearLayout>
