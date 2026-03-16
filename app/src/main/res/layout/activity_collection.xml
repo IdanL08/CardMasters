@@ -2,7 +2,7 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0E1A2B"
+    android:background="#000000"
     android:padding="16dp">
 
     <LinearLayout
@@ -10,17 +10,15 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-
         <TextView
             android:id="@+id/deck_size_label"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="DECK 0/4"
-            android:textColor="#FFFFFF"
-            android:textSize="20sp"
+            android:text="DECK 0/8"
+            android:textColor="@color/errorColor"
+            android:textSize="22sp"
             android:textStyle="bold"
             android:paddingBottom="8dp"/>
-
 
         <GridLayout
             android:id="@+id/deck_container"
@@ -30,21 +28,19 @@
             android:alignmentMode="alignMargins"
             android:padding="8dp"
             android:gravity="left"
-            android:background="#1E2D44" />
+            android:background="#2C2C2C" /> <View
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:background="@color/backgroundColor"
+        android:layout_marginVertical="16dp"/>
 
-        <!-- Divider -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="16dp"/>
-
-        <!-- ===== COLLECTION SECTION ===== -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="COLLECTION"
-            android:textSize="20sp"
+            android:textSize="22sp"
             android:textStyle="bold"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/textSecondary"
             android:paddingBottom="8dp"/>
 
         <GridLayout
@@ -55,8 +51,8 @@
             android:alignmentMode="alignMargins"
             android:padding="8dp"
             android:gravity="left"
-            android:background="#1E2D44" />
-        <!-- Back Button -->
+            android:background="#2C2C2C" />
+
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btn_back_to_main"
             android:layout_width="wrap_content"
@@ -67,7 +63,8 @@
             android:layout_marginTop="20dp"
             android:paddingVertical="24dp"
             android:paddingHorizontal="12dp"
-            android:layout_gravity="center"/>
+            android:layout_gravity="center"
+            android:textAllCaps="true"/>
 
     </LinearLayout>
 </ScrollView>
