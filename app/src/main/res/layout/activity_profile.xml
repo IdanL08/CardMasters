@@ -3,14 +3,14 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#121212"
+    android:background="#000000"
     android:padding="24dp">
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="פרופיל משתמש"
-        android:textColor="#FFD700"
+        android:textColor="#F6E75A"
         android:textSize="32sp"
         android:textStyle="bold"
         android:gravity="center"
@@ -20,9 +20,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="אימייל (לקריאה בלבד)"
-        android:textColor="#D4AF37"
-        android:textSize="16sp"
-        android:textStyle="bold"
+        android:textColor="#A9A9A9"
+        android:textSize="14sp"
         android:layout_marginBottom="8dp"/>
 
     <TextView
@@ -30,8 +29,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="16dp"
-        android:background="#1A252F"
-        android:textColor="#BDC3C7"
+        android:background="#2C2C2C"
+        android:textColor="#F6E75A"
         android:textSize="16sp"
         android:layout_marginBottom="24dp"/>
 
@@ -39,9 +38,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="שם משתמש"
-        android:textColor="#D4AF37"
-        android:textSize="16sp"
-        android:textStyle="bold"
+        android:textColor="#A9A9A9"
+        android:textSize="14sp"
         android:layout_marginBottom="8dp"/>
 
     <EditText
@@ -50,8 +48,8 @@
         android:layout_height="wrap_content"
         android:hint="הזן שם משתמש חדש"
         android:textColor="#FFFFFF"
-        android:textColorHint="#7F8C8D"
-        android:background="#1A252F"
+        android:textColorHint="#555555"
+        android:background="#2C2C2C"
         android:padding="16dp"
         android:textSize="18sp"
         android:inputType="textPersonName"
@@ -62,10 +60,10 @@
         android:layout_width="match_parent"
         android:layout_height="60dp"
         android:text="עדכן שם משתמש"
-        android:textColor="#000000"
+        android:textColor="#ffffff"
         android:textSize="18sp"
         android:textStyle="bold"
-        android:backgroundTint="#FFD700"
+        android:background="@drawable/button_outline"
         android:layout_marginBottom="16dp"/>
 
     <androidx.appcompat.widget.AppCompatButton
@@ -73,10 +71,11 @@
         android:layout_width="match_parent"
         android:layout_height="60dp"
         android:text="מחק משתמש"
-        android:textColor="#FFFFFF"
+        android:textColor="#FF4242"
         android:textSize="18sp"
         android:textStyle="bold"
-        android:backgroundTint="#E74C3C"
+        android:background="@drawable/button_outline"
+
         android:layout_marginBottom="16dp"/>
 
     <View
@@ -92,7 +91,7 @@
         android:textSize="16sp"
         android:padding="16dp"
         android:layout_gravity="center"
-        android:textColor="#FFFFFF"
+        android:textColor="#ffffff"
         android:background="@drawable/button_outline" />
 
 </LinearLayout>

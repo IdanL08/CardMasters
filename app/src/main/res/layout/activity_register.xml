@@ -1,52 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
     android:orientation="vertical"
     android:gravity="center"
     android:padding="24dp"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:background="#000000"> <TextView
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="NEW ACCOUNT"
+    android:textColor="#F6E75A"
+    android:textSize="32sp"
+    android:textStyle="bold"
+    android:layout_marginBottom="40dp"
+    android:letterSpacing="0.1" />
 
     <EditText
         android:id="@+id/edtUsername"
-        android:hint="Username"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="@dimen/text_large"
-        android:textColor="@color/textPrimary"
-        android:background="@color/surfaceColor"
-        android:padding="@dimen/margin_large"
-        android:layout_marginBottom="@dimen/margin_large"/>
+        android:hint="USERNAME"
+        android:textColorHint="#555555"
+        android:textColor="#FFFFFF"
+        android:background="#1A1A1A"
+        android:padding="16dp"
+        android:layout_marginBottom="16dp"
+        android:drawablePadding="10dp"
+        android:textSize="18sp" />
 
     <EditText
         android:id="@+id/edtEmail"
-        android:hint="Email"
-        android:inputType="textEmailAddress"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="@dimen/text_large"
-        android:textColor="@color/textPrimary"
-        android:background="@color/surfaceColor"
-        android:padding="@dimen/margin_large"
-        android:layout_marginBottom="@dimen/margin_large"/>
+        android:hint="EMAIL ADDRESS"
+        android:inputType="textEmailAddress"
+        android:textColorHint="#555555"
+        android:textColor="#FFFFFF"
+        android:background="#1A1A1A"
+        android:padding="16dp"
+        android:layout_marginBottom="16dp"
+        android:textSize="18sp" />
 
     <EditText
         android:id="@+id/edtPassword"
-        android:hint="Password"
-        android:inputType="textPassword"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="@dimen/text_large"
-        android:padding="@dimen/margin_large"
-        android:textColor="@color/textPrimary"
-        android:background="@color/surfaceColor"
-        android:layout_marginBottom="@dimen/margin_large"/>
+        android:hint="PASSWORD"
+        android:inputType="textPassword"
+        android:textColorHint="#555555"
+        android:textColor="#FFFFFF"
+        android:background="#1A1A1A"
+        android:padding="16dp"
+        android:layout_marginBottom="32dp"
+        android:textSize="18sp" />
 
     <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/btnRegister"
-        android:text="Register"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
+        android:layout_height="60dp"
+        android:background="@drawable/button_outline"
+        android:text="INITIALIZE REGISTRATION"
+        android:textColor="#ffffff"
+        android:textSize="18sp"
+        android:textStyle="bold"
 
-
+        android:stateListAnimator="@null" />
 
 </LinearLayout>
