@@ -62,3 +62,4 @@ public class LootBoxReceiver extends BroadcastReceiver {
         notificationManager.notify(1, builder.build());
     }
 }
+

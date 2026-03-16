@@ -21,6 +21,17 @@
 
     </style>
 
+    <style name="VegasGameText">
+        <item name="android:textColor">#E69A33</item>
+
+        <item name="android:letterSpacing">0.15</item>
+
+        <item name="android:shadowColor">#000000</item>
+        <item name="android:shadowDx">4</item>
+        <item name="android:shadowDy">6</item>
+        <item name="android:shadowRadius">4</item>
+    </style>
+
 
 
 </resources>

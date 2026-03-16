@@ -4,16 +4,15 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/backgroundColor">
+    android:background="@drawable/bg_vegas_dark">
 
-    <!-- TOP BAR -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:weightSum="2">
+        android:weightSum="2"
+        >
 
-        <!-- LEFT STACK -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -23,27 +22,25 @@
 
             <ImageButton
                 android:id="@+id/btn_profile"
-                android:layout_width="@dimen/button_width_medium"
-                android:layout_height="@dimen/button_height_medium"
-                android:src="@drawable/ic_profile"
-                android:background="@drawable/button_outline"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/img_btn_profile"
+                android:background="@android:color/transparent"
                 android:scaleType="centerInside"
-                android:padding="12dp"
+
                 android:contentDescription="Profile" />
 
             <ImageButton
                 android:id="@+id/btn_leaderboard"
-                android:layout_width="@dimen/button_width_medium"
-                android:layout_height="@dimen/button_height_medium"
-                android:layout_weight="1"
-                android:src="@drawable/ic_leaderboard"
-                android:background="@drawable/button_outline"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/img_btn_leaderboard"
+                android:background="@android:color/transparent"
                 android:scaleType="centerInside"
-                android:padding="12dp"
+
                 android:contentDescription="Leaderboard" />
         </LinearLayout>
 
-        <!-- RIGHT STACK -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -53,75 +50,72 @@
 
             <ImageButton
                 android:id="@+id/btn_credits"
-                android:layout_width="@dimen/button_width_medium"
-                android:layout_height="@dimen/button_height_medium"
-                android:src="@drawable/ic_credits"
-                android:background="@drawable/button_outline"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:contentDescription="Settings"
                 android:scaleType="centerInside"
-                android:padding="12dp"
-                android:contentDescription="Settings" />
+
+                android:src="@drawable/img_btn_credits" />
 
             <ImageButton
                 android:id="@+id/btn_about"
-                android:layout_width="@dimen/button_width_medium"
-                android:layout_height="@dimen/button_height_medium"
-                android:src="@drawable/ic_about"
-                android:background="@drawable/button_outline"
+                android:layout_width="187dp"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:contentDescription="Tasks"
                 android:scaleType="centerInside"
-                android:padding="12dp"
-                android:contentDescription="Tasks" />
+
+                android:src="@drawable/img_btn_about" />
         </LinearLayout>
     </LinearLayout>
 
-    <!-- CENTER GAME BUTTON (OLD VERSION WITH TEXT) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:gravity="center">
 
-        <androidx.appcompat.widget.AppCompatButton
+        <ImageButton
             android:id="@+id/btn_game"
-            android:layout_width="@dimen/button_width_large"
-            android:layout_height="@dimen/button_height_large"
-            android:background="@drawable/button_outline"
-            android:backgroundTint="@null"
-            android:text="GAME"
-            android:textSize="@dimen/text_huge"
-            android:textStyle="bold"
-            android:textColor="@color/textPrimary"
-            android:gravity="center" />
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/img_btn_game"
+            android:background="@android:color/transparent"
+            android:scaleType="centerInside"
+            android:layout_margin="24dp"
+            android:contentDescription="Start Game" />
     </LinearLayout>
 
-    <!-- BOTTOM BAR -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="@dimen/button_height_medium"
+        android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:weightSum="2">
+        android:weightSum="2"
+
+        android:clipToPadding="false">
 
         <ImageButton
             android:id="@+id/btn_lootbox"
             android:layout_width="0dp"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:src="@drawable/ic_lootbox"
-            android:background="@drawable/button_outline"
+            android:src="@drawable/img_btn_lootbox"
+            android:background="@android:color/transparent"
             android:scaleType="centerInside"
-            android:padding="12dp"
+
             android:contentDescription="Lootbox" />
 
         <ImageButton
             android:id="@+id/btn_collection"
             android:layout_width="0dp"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:src="@drawable/ic_collection"
-            android:background="@drawable/button_outline"
+            android:src="@drawable/img_btn_collection"
+            android:background="@android:color/transparent"
             android:scaleType="centerInside"
-            android:padding="12dp"
-            android:contentDescription="Collection" />
 
+            android:contentDescription="Collection" />
 
     </LinearLayout>
 

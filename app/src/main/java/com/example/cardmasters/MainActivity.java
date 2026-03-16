@@ -22,7 +22,7 @@ public class MainActivity extends AppCompatActivity {
 
     // Buttons
     ImageButton btnCredits, btnAbout, btnProfile, btnFriends;
-    Button btnGame;
+    ImageButton btnGame;
     ImageButton btnLootbox, btnCollection, btnLeaderboard;
 
     // Launcher for result
@@ -42,7 +42,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         AlarmUtils.checkNotificationPermission(this,this);
-        AlarmUtils.setupLootBoxAlarm(this, 10, 34);
+        AlarmUtils.setupLootBoxAlarm(this, 9, 30);
 
         // Find views
         btnCredits = findViewById(R.id.btn_credits);
