@@ -5,6 +5,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -31,13 +33,21 @@ public class MatchmakingActivity extends AppCompatActivity implements FirebaseUt
     private ListenerRegistration matchStatusListener;
 
     // --- מנגנון ה-Retry לחילוץ מחדרים ריקים ---
-    private Handler retryHandler = new Handler(Looper.getMainLooper()); // TODO לרשום כהרחבה בתיק פרוייקט
+    private Handler retryHandler = new Handler(Looper.getMainLooper());
     private Runnable retryRunnable;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_matchmaking);
+
+        WindowInsetsController controller = getWindow().getInsetsController();
+        if (controller != null) {
+            controller.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+            controller.setSystemBarsBehavior(
+                    WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            );
+        }
 
         txtStatus = findViewById(R.id.txtStatus);
         txtMatchId = findViewById(R.id.txtMatchId);
